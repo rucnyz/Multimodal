@@ -10,9 +10,9 @@ def compute_args(args):
     if args.dataset == "MELD": args.dataloader = 'Meld_Dataset'
 
     # Loss function to use
-    if args.dataset == 'MOSEI' and args.task == 'sentiment': args.loss_fn = torch.nn.CrossEntropyLoss(reduction="sum")
-    if args.dataset == 'MOSEI' and args.task == 'emotion': args.loss_fn = torch.nn.BCEWithLogitsLoss(reduction="sum")
-    if args.dataset == 'MELD': args.loss_fn = torch.nn.CrossEntropyLoss(reduction="sum")
+    if args.dataset == 'MOSEI' and args.task == 'sentiment': args.loss_fn = torch.nn.CrossEntropyLoss(reduction = "sum")
+    if args.dataset == 'MOSEI' and args.task == 'emotion': args.loss_fn = torch.nn.BCEWithLogitsLoss(reduction = "sum")
+    if args.dataset == 'MELD': args.loss_fn = torch.nn.CrossEntropyLoss(reduction = "sum")
 
     # Answer size
     if args.dataset == 'MOSEI' and args.task == "sentiment": args.ans_size = 7
