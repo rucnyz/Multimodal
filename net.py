@@ -1,12 +1,11 @@
-import torch.nn as nn
+import math
+
+import torch
+import torch.nn.functional as F
+from torch.nn import LSTM, Embedding, ModuleList, Module, Linear, Dropout
 
 from layers.fc import MLP
 from layers.layer_norm import LayerNorm
-
-import torch.nn as nn
-import torch.nn.functional as F
-import torch
-import math
 
 
 # Masking the sequence mask
@@ -21,7 +20,7 @@ def make_mask(feature):
 # ---------- Flattening --------
 # ------------------------------
 
-class AttFlat(nn.Module):
+class AttFlat(Module):
     def __init__(self, args):
         super(AttFlat, self).__init__()
         self.args = args
@@ -34,7 +33,7 @@ class AttFlat(nn.Module):
             use_relu=True
         )
 
-        self.linear_merge = nn.Linear(
+        self.linear_merge = Linear(
             args.hidden_size * args.flat_glimpses,
             args.hidden_size * 2
         )
@@ -63,17 +62,17 @@ class AttFlat(nn.Module):
 # ---- Multi-Head Attention ----
 # ------------------------------
 
-class MHAtt(nn.Module):
+class MHAtt(Module):
     def __init__(self, args):
         super(MHAtt, self).__init__()
         self.args = args
 
-        self.linear_v = nn.Linear(args.hidden_size, args.hidden_size)
-        self.linear_k = nn.Linear(args.hidden_size, args.hidden_size)
-        self.linear_q = nn.Linear(args.hidden_size, args.hidden_size)
-        self.linear_merge = nn.Linear(args.hidden_size, args.hidden_size)
+        self.linear_v = Linear(args.hidden_size, args.hidden_size)
+        self.linear_k = Linear(args.hidden_size, args.hidden_size)
+        self.linear_q = Linear(args.hidden_size, args.hidden_size)
+        self.linear_merge = Linear(args.hidden_size, args.hidden_size)
 
-        self.dropout = nn.Dropout(args.dropout_r)
+        self.dropout = Dropout(args.dropout_r)
 
     def forward(self, v, k, q, mask):
         n_batches = q.size(0)
@@ -129,7 +128,7 @@ class MHAtt(nn.Module):
 # ---- Feed Forward Nets ----
 # ---------------------------
 
-class FFN(nn.Module):
+class FFN(Module):
     def __init__(self, args):
         super(FFN, self).__init__()
 
@@ -149,17 +148,17 @@ class FFN(nn.Module):
 # ---- Self Attention ----
 # ------------------------
 
-class SA(nn.Module):
+class SA(Module):
     def __init__(self, args):
         super(SA, self).__init__()
 
         self.mhatt = MHAtt(args)
         self.ffn = FFN(args)
 
-        self.dropout1 = nn.Dropout(args.dropout_r)
+        self.dropout1 = Dropout(args.dropout_r)
         self.norm1 = LayerNorm(args.hidden_size)
 
-        self.dropout2 = nn.Dropout(args.dropout_r)
+        self.dropout2 = Dropout(args.dropout_r)
         self.norm2 = LayerNorm(args.hidden_size)
 
     def forward(self, y, y_mask):
@@ -178,7 +177,7 @@ class SA(nn.Module):
 # ---- Self Guided Attention ----
 # -------------------------------
 
-class SGA(nn.Module):
+class SGA(Module):
     def __init__(self, args):
         super(SGA, self).__init__()
 
@@ -186,13 +185,13 @@ class SGA(nn.Module):
         self.mhatt2 = MHAtt(args)
         self.ffn = FFN(args)
 
-        self.dropout1 = nn.Dropout(args.dropout_r)
+        self.dropout1 = Dropout(args.dropout_r)
         self.norm1 = LayerNorm(args.hidden_size)
 
-        self.dropout2 = nn.Dropout(args.dropout_r)
+        self.dropout2 = Dropout(args.dropout_r)
         self.norm2 = LayerNorm(args.hidden_size)
 
-        self.dropout3 = nn.Dropout(args.dropout_r)
+        self.dropout3 = Dropout(args.dropout_r)
         self.norm3 = LayerNorm(args.hidden_size)
 
     def forward(self, x, y, x_mask, y_mask):
@@ -211,13 +210,13 @@ class SGA(nn.Module):
         return x
 
 
-class MCA(nn.Module):
+class MCA(Module):
     def __init__(self, args, vocab_size, pretrained_emb):
         super(MCA, self).__init__()
 
         self.args = args
 
-        self.embedding = nn.Embedding(
+        self.embedding = Embedding(
             num_embeddings=vocab_size,
             embedding_dim=args.word_embed_size
         )
@@ -225,17 +224,17 @@ class MCA(nn.Module):
         # Loading the GloVe embedding weights
         self.embedding.weight.data.copy_(torch.from_numpy(pretrained_emb))
 
-        self.lstm = nn.LSTM(
+        self.lstm = LSTM(
             input_size=args.word_embed_size,
             hidden_size=args.hidden_size,
             num_layers=1,
             batch_first=True
         )
 
-        self.adapter = nn.Linear(args.audio_feat_size, args.hidden_size)
+        self.adapter = Linear(args.audio_feat_size, args.hidden_size)
 
-        self.enc_list = nn.ModuleList([SA(args) for _ in range(args.layer)])
-        self.dec_list = nn.ModuleList([SGA(args) for _ in range(args.layer)])
+        self.enc_list = ModuleList([SA(args) for _ in range(args.layer)])
+        self.dec_list = ModuleList([SGA(args) for _ in range(args.layer)])
 
         #flattening
         self.attflat_img = AttFlat(args)
@@ -245,9 +244,9 @@ class MCA(nn.Module):
         self.proj_norm = LayerNorm(2 * args.hidden_size)
 
         if self.args.task_binary:
-            self.proj = nn.Linear(2 * args.hidden_size, 2)
+            self.proj = Linear(2 * args.hidden_size, 2)
         else:
-            self.proj = nn.Linear(2 * args.hidden_size, 7)
+            self.proj = Linear(2 * args.hidden_size, 7)
 
 
 
