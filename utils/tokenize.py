@@ -6,12 +6,13 @@ import numpy as np
 import os
 import pickle
 
+
 def clean(w):
     return re.sub(
-            r"([.,'!?\"()*#:;])",
-            '',
-            w.lower()
-            ).replace('-', ' ').replace('/', ' ')
+        r"([.,'!?\"()*#:;])",
+        '',
+        w.lower()
+    ).replace('-', ' ').replace('/', ' ')
 
 
 def tokenize(key_to_word):
@@ -21,9 +22,9 @@ def tokenize(key_to_word):
     return key_to_sentence
 
 
-def create_dict(key_to_sentence, dataroot, use_glove=True):
-    token_file = dataroot+"/token_to_ix.pkl"
-    glove_file = dataroot+"/train_glove.npy"
+def create_dict(key_to_sentence, dataroot, use_glove = True):
+    token_file = dataroot + "/token_to_ix.pkl"
+    glove_file = dataroot + "/train_glove.npy"
     if os.path.exists(glove_file) and os.path.exists(token_file):
         print("Loading train language files")
         return pickle.load(open(token_file, "rb")), np.load(glove_file)
@@ -51,7 +52,8 @@ def create_dict(key_to_sentence, dataroot, use_glove=True):
     pickle.dump(token_to_ix, open(token_file, "wb"))
     return token_to_ix, pretrained_emb
 
-def sent_to_ix(s, token_to_ix, max_token=100):
+
+def sent_to_ix(s, token_to_ix, max_token = 100):
     ques_ix = np.zeros(max_token, np.int64)
 
     for ix, word in enumerate(s):
@@ -83,11 +85,13 @@ def cmumosei_7(a):
         res = 6
     return res
 
+
 def cmumosei_2(a):
     if a < 0:
         return 0
     if a >= 0:
         return 1
+
 
 def pad_feature(feat, max_len):
     if feat.shape[0] > max_len:
@@ -96,8 +100,8 @@ def pad_feature(feat, max_len):
     feat = np.pad(
         feat,
         ((0, max_len - feat.shape[0]), (0, 0)),
-        mode='constant',
-        constant_values=0
+        mode = 'constant',
+        constant_values = 0
     )
 
     return feat

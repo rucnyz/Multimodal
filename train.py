@@ -1,12 +1,13 @@
+import os
+import time
+
 import torch
 import torch.nn as nn
-import time
-import numpy as np
-import os
+
 from utils.pred_func import *
 
-def train(net, train_loader, eval_loader, args):
 
+def train(net, train_loader, eval_loader, args):
     logfile = open(
         args.output + "/" + args.name +
         '/log_run.txt',
@@ -20,7 +21,7 @@ def train(net, train_loader, eval_loader, args):
     decay_count = 0
 
     # Load the optimizer paramters
-    optim = torch.optim.Adam(net.parameters(), lr=args.lr_base)
+    optim = torch.optim.Adam(net.parameters(), lr = args.lr_base)
 
     loss_fn = args.loss_fn
     eval_accuracies = []
@@ -58,8 +59,9 @@ def train(net, train_loader, eval_loader, args):
                       int(len(train_loader.dataset) / args.batch_size),
                       loss_tmp / args.batch_size,
                       *[group['lr'] for group in optim.param_groups],
-                      ((time.time() - time_start) / (step + 1)) * ((len(train_loader.dataset) / args.batch_size) - step) / 60,
-                  ), end='          ')
+                      ((time.time() - time_start) / (step + 1)) * (
+                                  (len(train_loader.dataset) / args.batch_size) - step) / 60,
+                  ), end = '          ')
 
             # Gradient norm clipping
             if args.grad_norm_clip > 0:
@@ -71,7 +73,7 @@ def train(net, train_loader, eval_loader, args):
             optim.step()
 
         time_end = time.time()
-        elapse_time = time_end-time_start
+        elapse_time = time_end - time_start
         print('Finished in {}s'.format(int(elapse_time)))
         epoch_finish = epoch + 1
 
@@ -89,7 +91,7 @@ def train(net, train_loader, eval_loader, args):
         if epoch_finish >= args.eval_start:
             print('Evaluation...')
             accuracy, _ = evaluate(net, eval_loader, args)
-            print('Accuracy :'+str(accuracy))
+            print('Accuracy :' + str(accuracy))
             eval_accuracies.append(accuracy)
             if accuracy > best_eval_accuracy:
                 # Best
@@ -101,7 +103,7 @@ def train(net, train_loader, eval_loader, args):
                 torch.save(
                     state,
                     args.output + "/" + args.name +
-                    '/best'+str(args.seed)+'.pkl'
+                    '/best' + str(args.seed) + '.pkl'
                 )
                 best_eval_accuracy = accuracy
                 early_stop = 0
@@ -111,7 +113,7 @@ def train(net, train_loader, eval_loader, args):
                 print('LR Decay...')
                 decay_count += 1
                 net.load_state_dict(torch.load(args.output + "/" + args.name +
-                                               '/best'+str(args.seed)+'.pkl')['state_dict'])
+                                               '/best' + str(args.seed) + '.pkl')['state_dict'])
                 # adjust_lr(optim, args.lr_decay)
                 for group in optim.param_groups:
                     group['lr'] *= args.lr_decay
@@ -125,7 +127,7 @@ def train(net, train_loader, eval_loader, args):
                     logfile.write('best_overall_acc :' + str(best_eval_accuracy) + '\n\n')
                     print('best_eval_acc :' + str(best_eval_accuracy) + '\n\n')
                     os.rename(args.output + "/" + args.name +
-                              '/best'+str(args.seed)+'.pkl',
+                              '/best' + str(args.seed) + '.pkl',
                               args.output + "/" + args.name +
                               '/best' + str(best_eval_accuracy) + "_" + str(args.seed) + '.pkl')
                     logfile.close()
@@ -153,11 +155,10 @@ def evaluate(net, eval_loader, args):
         if not eval_loader.dataset.private_set:
             ans = ans.cpu().data.numpy()
             accuracy += list(eval(args.pred_func)(pred) == ans)
-            
+
         # Save preds
         for id, p in zip(ids, pred):
             preds[id] = p
 
     net.train(True)
-    return 100*np.mean(np.array(accuracy)), preds
-
+    return 100 * np.mean(np.array(accuracy)), preds

@@ -12,7 +12,7 @@ from layers.layer_norm import LayerNorm
 def make_mask(feature):
     return (torch.sum(
         torch.abs(feature),
-        dim=-1
+        dim = -1
     ) == 0).unsqueeze(1).unsqueeze(2)
 
 
@@ -26,11 +26,11 @@ class AttFlat(Module):
         self.args = args
 
         self.mlp = MLP(
-            in_size=args.hidden_size,
-            mid_size=args.flat_mlp_size,
-            out_size=args.flat_glimpses,
-            dropout_r=args.dropout_r,
-            use_relu=True
+            in_size = args.hidden_size,
+            mid_size = args.flat_mlp_size,
+            out_size = args.flat_glimpses,
+            dropout_r = args.dropout_r,
+            use_relu = True
         )
 
         self.linear_merge = Linear(
@@ -44,15 +44,15 @@ class AttFlat(Module):
             x_mask.squeeze(1).squeeze(1).unsqueeze(2),
             -1e9
         )
-        att = F.softmax(att, dim=1)
+        att = F.softmax(att, dim = 1)
 
         att_list = []
         for i in range(self.args.flat_glimpses):
             att_list.append(
-                torch.sum(att[:, :, i: i + 1] * x, dim=1)
+                torch.sum(att[:, :, i: i + 1] * x, dim = 1)
             )
 
-        x_atted = torch.cat(att_list, dim=1)
+        x_atted = torch.cat(att_list, dim = 1)
         x_atted = self.linear_merge(x_atted)
 
         return x_atted
@@ -118,7 +118,7 @@ class MHAtt(Module):
         if mask is not None:
             scores = scores.masked_fill(mask, -1e9)
 
-        att_map = F.softmax(scores, dim=-1)
+        att_map = F.softmax(scores, dim = -1)
         att_map = self.dropout(att_map)
 
         return torch.matmul(att_map, value)
@@ -133,11 +133,11 @@ class FFN(Module):
         super(FFN, self).__init__()
 
         self.mlp = MLP(
-            in_size=args.hidden_size,
-            mid_size=args.ff_size,
-            out_size=args.hidden_size,
-            dropout_r=args.dropout_r,
-            use_relu=True
+            in_size = args.hidden_size,
+            mid_size = args.ff_size,
+            out_size = args.hidden_size,
+            dropout_r = args.dropout_r,
+            use_relu = True
         )
 
     def forward(self, x):
@@ -196,11 +196,11 @@ class SGA(Module):
 
     def forward(self, x, y, x_mask, y_mask):
         x = self.norm1(x + self.dropout1(
-            self.mhatt1(v=x, k=x, q=x, mask=x_mask)
+            self.mhatt1(v = x, k = x, q = x, mask = x_mask)
         ))
 
         x = self.norm2(x + self.dropout2(
-            self.mhatt2(v=y, k=y, q=x, mask=y_mask)
+            self.mhatt2(v = y, k = y, q = x, mask = y_mask)
         ))
 
         x = self.norm3(x + self.dropout3(
@@ -217,18 +217,18 @@ class MCA(Module):
         self.args = args
 
         self.embedding = Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=args.word_embed_size
+            num_embeddings = vocab_size,
+            embedding_dim = args.word_embed_size
         )
 
         # Loading the GloVe embedding weights
         self.embedding.weight.data.copy_(torch.from_numpy(pretrained_emb))
 
         self.lstm = LSTM(
-            input_size=args.word_embed_size,
-            hidden_size=args.hidden_size,
-            num_layers=1,
-            batch_first=True
+            input_size = args.word_embed_size,
+            hidden_size = args.hidden_size,
+            num_layers = 1,
+            batch_first = True
         )
 
         self.adapter = Linear(args.audio_feat_size, args.hidden_size)
@@ -236,7 +236,7 @@ class MCA(Module):
         self.enc_list = ModuleList([SA(args) for _ in range(args.layer)])
         self.dec_list = ModuleList([SGA(args) for _ in range(args.layer)])
 
-        #flattening
+        # flattening
         self.attflat_img = AttFlat(args)
         self.attflat_lang = AttFlat(args)
 
@@ -247,9 +247,6 @@ class MCA(Module):
             self.proj = Linear(2 * args.hidden_size, 2)
         else:
             self.proj = Linear(2 * args.hidden_size, 7)
-
-
-
 
     def forward(self, x, y):
         x_mask = make_mask(x.unsqueeze(2))
@@ -284,6 +281,3 @@ class MCA(Module):
         ans = self.proj(proj_feat)
 
         return ans
-
-
-

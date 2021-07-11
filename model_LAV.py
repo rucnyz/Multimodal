@@ -6,14 +6,16 @@ import torch.nn.functional as F
 from layers.fc import MLP
 from layers.layer_norm import LayerNorm
 
+
 # ------------------------------------
 # ---------- Masking sequence --------
 # ------------------------------------
 def make_mask(feature):
     return (torch.sum(
         torch.abs(feature),
-        dim=-1
+        dim = -1
     ) == 0).unsqueeze(1).unsqueeze(2)
+
 
 # ------------------------------
 # ---------- Flattening --------
@@ -21,17 +23,17 @@ def make_mask(feature):
 
 
 class AttFlat(nn.Module):
-    def __init__(self, args, flat_glimpse, merge=False):
+    def __init__(self, args, flat_glimpse, merge = False):
         super(AttFlat, self).__init__()
         self.args = args
         self.merge = merge
         self.flat_glimpse = flat_glimpse
         self.mlp = MLP(
-            in_size=args.hidden_size,
-            mid_size=args.ff_size,
-            out_size=flat_glimpse,
-            dropout_r=args.dropout_r,
-            use_relu=True
+            in_size = args.hidden_size,
+            mid_size = args.ff_size,
+            out_size = flat_glimpse,
+            dropout_r = args.dropout_r,
+            use_relu = True
         )
 
         if self.merge:
@@ -47,21 +49,22 @@ class AttFlat(nn.Module):
                 x_mask.squeeze(1).squeeze(1).unsqueeze(2),
                 -1e9
             )
-        att = F.softmax(att, dim=1)
+        att = F.softmax(att, dim = 1)
 
         att_list = []
         for i in range(self.flat_glimpse):
             att_list.append(
-                torch.sum(att[:, :, i: i + 1] * x, dim=1)
+                torch.sum(att[:, :, i: i + 1] * x, dim = 1)
             )
 
         if self.merge:
-            x_atted = torch.cat(att_list, dim=1)
+            x_atted = torch.cat(att_list, dim = 1)
             x_atted = self.linear_merge(x_atted)
 
             return x_atted
 
         return torch.stack(att_list).transpose_(0, 1)
+
 
 # ------------------------
 # ---- Self Attention ----
@@ -115,11 +118,11 @@ class SGA(nn.Module):
 
     def forward(self, x, y, x_mask, y_mask):
         x = self.norm1(x + self.dropout1(
-            self.mhatt1(v=x, k=x, q=x, mask=x_mask)
+            self.mhatt1(v = x, k = x, q = x, mask = x_mask)
         ))
 
         x = self.norm2(x + self.dropout2(
-            self.mhatt2(v=y, k=y, q=x, mask=y_mask)
+            self.mhatt2(v = y, k = y, q = x, mask = y_mask)
         ))
 
         x = self.norm3(x + self.dropout3(
@@ -127,6 +130,7 @@ class SGA(nn.Module):
         ))
 
         return x
+
 
 # ------------------------------
 # ---- Multi-Head Attention ----
@@ -188,7 +192,7 @@ class MHAtt(nn.Module):
         if mask is not None:
             scores = scores.masked_fill(mask, -1e9)
 
-        att_map = F.softmax(scores, dim=-1)
+        att_map = F.softmax(scores, dim = -1)
         att_map = self.dropout(att_map)
 
         return torch.matmul(att_map, value)
@@ -203,15 +207,16 @@ class FFN(nn.Module):
         super(FFN, self).__init__()
 
         self.mlp = MLP(
-            in_size=args.hidden_size,
-            mid_size=args.ff_size,
-            out_size=args.hidden_size,
-            dropout_r=args.dropout_r,
-            use_relu=True
+            in_size = args.hidden_size,
+            mid_size = args.ff_size,
+            out_size = args.hidden_size,
+            dropout_r = args.dropout_r,
+            use_relu = True
         )
 
     def forward(self, x):
         return self.mlp(x)
+
 
 # ---------------------------
 # ---- FF + norm  -----------
@@ -231,7 +236,6 @@ class FFAndNorm(nn.Module):
         return x
 
 
-
 class Block(nn.Module):
     def __init__(self, args, i):
         super(Block, self).__init__()
@@ -240,11 +244,11 @@ class Block(nn.Module):
         self.sa2 = SGA(args)
         self.sa3 = SGA(args)
 
-        self.last = (i == args.layer-1)
+        self.last = (i == args.layer - 1)
         if not self.last:
-            self.att_lang = AttFlat(args, args.lang_seq_len, merge=False)
-            self.att_audio = AttFlat(args, args.audio_seq_len, merge=False)
-            self.att_vid = AttFlat(args, args.video_seq_len, merge=False)
+            self.att_lang = AttFlat(args, args.lang_seq_len, merge = False)
+            self.att_audio = AttFlat(args, args.audio_seq_len, merge = False)
+            self.att_vid = AttFlat(args, args.video_seq_len, merge = False)
             self.norm_l = LayerNorm(args.hidden_size)
             self.norm_a = LayerNorm(args.hidden_size)
             self.norm_v = LayerNorm(args.hidden_size)
@@ -272,7 +276,6 @@ class Block(nn.Module):
                self.norm_v(z + self.dropout(az))
 
 
-
 class Model_LAV(nn.Module):
     def __init__(self, args, vocab_size, pretrained_emb):
         super(Model_LAV, self).__init__()
@@ -281,18 +284,18 @@ class Model_LAV(nn.Module):
 
         # LSTM
         self.embedding = nn.Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=args.word_embed_size
+            num_embeddings = vocab_size,
+            embedding_dim = args.word_embed_size
         )
 
         # Loading the GloVe embedding weights
         self.embedding.weight.data.copy_(torch.from_numpy(pretrained_emb))
 
         self.lstm_x = nn.LSTM(
-            input_size=args.word_embed_size,
-            hidden_size=args.hidden_size,
-            num_layers=1,
-            batch_first=True
+            input_size = args.word_embed_size,
+            hidden_size = args.hidden_size,
+            num_layers = 1,
+            batch_first = True
         )
 
         # self.lstm_y = nn.LSTM(
@@ -310,9 +313,9 @@ class Model_LAV(nn.Module):
         self.enc_list = nn.ModuleList([Block(args, i) for i in range(args.layer)])
 
         # Flattenting features before proj
-        self.attflat_ac   = AttFlat(args, 1, merge=True)
-        self.attflat_vid  = AttFlat(args, 1, merge=True)
-        self.attflat_lang = AttFlat(args, 1, merge=True)
+        self.attflat_ac = AttFlat(args, 1, merge = True)
+        self.attflat_vid = AttFlat(args, 1, merge = True)
+        self.attflat_lang = AttFlat(args, 1, merge = True)
 
         # Classification layers
         self.proj_norm = LayerNorm(2 * args.hidden_size)
@@ -328,7 +331,6 @@ class Model_LAV(nn.Module):
         x_mask = make_mask(x.unsqueeze(2))
         y_mask = make_mask(y)
         z_mask = make_mask(z)
-
 
         embedding = self.embedding(x)
 
@@ -357,7 +359,6 @@ class Model_LAV(nn.Module):
             z,
             None
         )
-
 
         # Classification layers
         proj_feat = x + y + z
