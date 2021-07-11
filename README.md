@@ -25,8 +25,8 @@ pip install en_vectors_web_lg-2.1.0.tar.gz
 
 #### Data
 
-Download data from [here](https://drive.google.com/file/d/1tcVYIMcZdlDzGuJvnMtbMchKIK9ulW1P/view?usp=sharing).<br/>
-Unzip the files into the 'data' folder<br/>
+Download data from [here](https://drive.google.com/file/d/1tcVYIMcZdlDzGuJvnMtbMchKIK9ulW1P/view?usp=sharing).
+<br/>Unzip the files into the 'data' folder<br/>
 More informations about the data can be found in the 'data' folder<br/>
 
 #### Training

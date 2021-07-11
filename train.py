@@ -40,10 +40,10 @@ def train(net, train_loader, eval_loader, args):
             loss_tmp = 0
             optim.zero_grad()
 
-            x = x.cuda()
-            y = y.cuda()
-            z = z.cuda()
-            ans = ans.cuda()
+            # x = x.cuda()
+            # y = y.cuda()
+            # z = z.cuda()
+            # ans = ans.cuda()
 
             pred = net(x, y, z)
             loss = loss_fn(pred, ans)
@@ -147,9 +147,9 @@ def evaluate(net, eval_loader, args):
             z,
             ans,
     ) in enumerate(eval_loader):
-        x = x.cuda()
-        y = y.cuda()
-        z = z.cuda()
+        # x = x.cuda()
+        # y = y.cuda()
+        # z = z.cuda()
         pred = net(x, y, z).cpu().data.numpy()
 
         if not eval_loader.dataset.private_set:
