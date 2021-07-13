@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from predict_model.layers.fc import MLP, FC
-from predict_model.layers.layer_norm import LayerNorm
+from src.predict_model.layers.fc import MLP, FC
+from src.predict_model.layers.layer_norm import LayerNorm
 
 
 # ------------------------------------

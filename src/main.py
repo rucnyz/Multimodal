@@ -1,18 +1,17 @@
 import argparse, os, random
 import torch
-from torch.utils.data import DataLoader
-from train import train
 import numpy as np
-from utils.compute_args import compute_args
+from torch.utils.data import DataLoader
 
-from predict_model.model_LA import Model_LA
-from predict_model.model_LAV import Model_LAV
-from dataset.mosei_dataset import Mosei_Dataset
-from dataset.meld_dataset import Meld_Dataset
+from src.train import train
+from src.utils.compute_args import compute_args
+from src.predict_model.model_LA import Model_LA
+from src.predict_model.model_LAV import Model_LAV
+from src.dataset.mosei_dataset import Mosei_Dataset
+from src.dataset.meld_dataset import Meld_Dataset
 
 
 # try to commit tell me why～ second try
-
 def parse_args():
     parser = argparse.ArgumentParser()
     # Model
@@ -57,8 +56,10 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    # changing directory to the project root
-    os.chdir("../")
+    if (os.getcwd().endswith("src")):
+        # change working directory to the project root
+        os.chdir("../")
+
     # Base on args given, compute new args
     args = compute_args(parse_args())
 
@@ -69,7 +70,6 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     # DataLoader
-
     train_dset = eval(args.dataloader)('train', args)
     eval_dset = eval(args.dataloader)('valid', args, train_dset.token_to_ix)
     train_loader = DataLoader(train_dset, args.batch_size, shuffle = True, num_workers = 8, pin_memory = True)

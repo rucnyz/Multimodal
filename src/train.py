@@ -2,9 +2,10 @@ import os
 import time
 import torch
 import torch.nn as nn
-
-from utils.pred_func import *
 from torch.utils.tensorboard import SummaryWriter
+
+from src.utils.pred_func import *
+
 
 
 def train(net, train_loader, eval_loader, args):
