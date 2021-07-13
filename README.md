@@ -10,8 +10,8 @@ Create a 3.8.5 python environement with:
 ```
 sklearn            0.24.2
 spacy              2.3.7
-torch              1.7.1    
-torchvision        0.8.2 
+torch              1.9.0    
+torchvision        0.10.0 
 tensorboard        2.5.0
 numpy              1.20.2    
 ```
