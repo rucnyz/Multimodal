@@ -28,23 +28,14 @@ def train(net, train_loader, eval_loader, args):
     for epoch in range(0, args.max_epoch):
 
         time_start = time.time()
-
-        for step, (
-                id,
-                x,
-                y,
-                z,
-                ans,
-        ) in enumerate(train_loader):
-
+        # z是视频文件，但这里没用
+        for step, (id, x, y, z, ans,) in enumerate(train_loader):
             loss_tmp = 0
             optim.zero_grad()
-
             # x = x.cuda()
             # y = y.cuda()
             # z = z.cuda()
             # ans = ans.cuda()
-
             pred = net(x, y, z)
             loss = loss_fn(pred, ans)
             loss.backward()
@@ -60,7 +51,7 @@ def train(net, train_loader, eval_loader, args):
                       loss_tmp / args.batch_size,
                       *[group['lr'] for group in optim.param_groups],
                       ((time.time() - time_start) / (step + 1)) * (
-                                  (len(train_loader.dataset) / args.batch_size) - step) / 60,
+                              (len(train_loader.dataset) / args.batch_size) - step) / 60,
                   ), end = '          ')
 
             # Gradient norm clipping
@@ -138,7 +129,7 @@ def train(net, train_loader, eval_loader, args):
 
 def evaluate(net, eval_loader, args):
     accuracy = []
-    net.train(False)
+    net.train(False)  # 和net.eval()效果一样,使得dropout和BatchNorm层参数被完全冻结
     preds = {}
     for step, (
             ids,
@@ -160,5 +151,5 @@ def evaluate(net, eval_loader, args):
         for id, p in zip(ids, pred):
             preds[id] = p
 
-    net.train(True)
+    net.train(True)  # 和net.train()效果一样，恢复训练模式
     return 100 * np.mean(np.array(accuracy)), preds

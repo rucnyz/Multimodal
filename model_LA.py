@@ -311,7 +311,7 @@ class Model_LA(nn.Module):
         # Classification layers
         self.proj_norm = LayerNorm(2 * args.hidden_size)
         self.proj = self.proj = nn.Linear(2 * args.hidden_size, args.ans_size)
-
+    # 这里_没有用
     def forward(self, x, y, _):
         x_mask = make_mask(x.unsqueeze(2))
         y_mask = make_mask(y)
