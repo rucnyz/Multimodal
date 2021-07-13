@@ -1,6 +1,5 @@
 import os
 import time
-
 import torch
 import torch.nn as nn
 
@@ -67,8 +66,8 @@ def train(net, train_loader, eval_loader, args):
             optim.step()
 
             # logging for tensorBoard
-            if step % 100 == 0:
-                writer.add_scalar("train_loss_each_100batch", loss.item(), step)
+            if step % 20 == 0:
+                writer.add_scalar("train_loss_each_20batch", loss.item() / (20 * args.batch_size), step)
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {}s'.format(int(elapse_time)))
@@ -149,7 +148,7 @@ def evaluate(net, eval_loader, args):
                 x = x.cuda()
                 y = y.cuda()
                 z = z.cuda()
-            pred = net(x, y, z).cpu().data.numpy()
+            pred = net(x, y, z)
 
             if not eval_loader.dataset.private_set:
                 ans = ans.cpu().data.numpy()

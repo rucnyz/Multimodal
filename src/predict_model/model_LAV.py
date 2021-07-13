@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from layers.fc import MLP, FC
-from layers.layer_norm import LayerNorm
+from predict_model.layers.fc import MLP
+from predict_model.layers.layer_norm import LayerNorm
 
 
 # ------------------------------------
@@ -241,37 +241,44 @@ class Block(nn.Module):
         super(Block, self).__init__()
         self.args = args
         self.sa1 = SA(args)
+        self.sa2 = SGA(args)
         self.sa3 = SGA(args)
 
         self.last = (i == args.layer - 1)
         if not self.last:
             self.att_lang = AttFlat(args, args.lang_seq_len, merge = False)
             self.att_audio = AttFlat(args, args.audio_seq_len, merge = False)
+            self.att_vid = AttFlat(args, args.video_seq_len, merge = False)
             self.norm_l = LayerNorm(args.hidden_size)
-            self.norm_i = LayerNorm(args.hidden_size)
+            self.norm_a = LayerNorm(args.hidden_size)
+            self.norm_v = LayerNorm(args.hidden_size)
             self.dropout = nn.Dropout(args.dropout_r)
 
-    def forward(self, x, x_mask, y, y_mask):
+    def forward(self, x, x_mask, y, y_mask, z, z_mask):
 
         ax = self.sa1(x, x_mask)
-        ay = self.sa3(y, x, y_mask, x_mask)
+        ay = self.sa2(y, x, y_mask, x_mask)
+        az = self.sa3(z, x, z_mask, x_mask)
 
         x = ax + x
         y = ay + y
+        z = az + z
 
         if self.last:
-            return x, y
+            return x, y, z
 
         ax = self.att_lang(x, x_mask)
         ay = self.att_audio(y, y_mask)
+        az = self.att_vid(z, y_mask)
 
         return self.norm_l(x + self.dropout(ax)), \
-               self.norm_i(y + self.dropout(ay))
+               self.norm_a(y + self.dropout(ay)), \
+               self.norm_v(z + self.dropout(az))
 
 
-class Model_LA(nn.Module):
+class Model_LAV(nn.Module):
     def __init__(self, args, vocab_size, pretrained_emb):
-        super(Model_LA, self).__init__()
+        super(Model_LAV, self).__init__()
 
         self.args = args
 
@@ -299,48 +306,62 @@ class Model_LA(nn.Module):
         # )
 
         # Feature size to hid size
-        self.adapter = nn.Linear(args.audio_feat_size, args.hidden_size)
+        self.adapter_y = nn.Linear(args.audio_feat_size, args.hidden_size)
+        self.adapter_z = nn.Linear(args.video_feat_size, args.hidden_size)
 
         # Encoder blocks
         self.enc_list = nn.ModuleList([Block(args, i) for i in range(args.layer)])
 
         # Flattenting features before proj
-        self.attflat_img = AttFlat(args, 1, merge = True)
+        self.attflat_ac = AttFlat(args, 1, merge = True)
+        self.attflat_vid = AttFlat(args, 1, merge = True)
         self.attflat_lang = AttFlat(args, 1, merge = True)
 
         # Classification layers
         self.proj_norm = LayerNorm(2 * args.hidden_size)
-        self.proj = self.proj = nn.Linear(2 * args.hidden_size, args.ans_size)
-    # 这里_没有用
-    def forward(self, x, y, _):
+        if self.args.task == "sentiment":
+            if self.args.task_binary:
+                self.proj = nn.Linear(2 * args.hidden_size, 2)
+            else:
+                self.proj = nn.Linear(2 * args.hidden_size, 7)
+        if self.args.task == "emotion":
+            self.proj = self.proj = nn.Linear(2 * args.hidden_size, 6)
+
+    def forward(self, x, y, z):
         x_mask = make_mask(x.unsqueeze(2))
         y_mask = make_mask(y)
+        z_mask = make_mask(z)
 
         embedding = self.embedding(x)
 
         x, _ = self.lstm_x(embedding)
         # y, _ = self.lstm_y(y)
 
-        y = self.adapter(y)
+        y, z = self.adapter_y(y), self.adapter_z(z)
 
         for i, dec in enumerate(self.enc_list):
-            x_m, x_y = None, None
+            x_m, y_m, z_m = None, None, None
             if i == 0:
-                x_m, x_y = x_mask, y_mask
-            x, y = dec(x, x_m, y, x_y)
+                x_m, y_m, z_m = x_mask, y_mask, z_mask
+            x, y, z = dec(x, x_m, y, y_m, z, z_m)
 
         x = self.attflat_lang(
             x,
             None
         )
 
-        y = self.attflat_img(
+        y = self.attflat_ac(
             y,
             None
         )
 
+        z = self.attflat_vid(
+            z,
+            None
+        )
+
         # Classification layers
-        proj_feat = x + y
+        proj_feat = x + y + z
         proj_feat = self.proj_norm(proj_feat)
         ans = self.proj(proj_feat)
 

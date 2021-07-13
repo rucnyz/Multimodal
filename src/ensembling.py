@@ -1,16 +1,14 @@
-import argparse, os, glob, pickle, warnings, torch
-import numpy as np
+import argparse, os, glob, warnings, torch
 from utils.pred_func import *
 from sklearn.metrics import classification_report
 from utils.compute_args import compute_args
 from torch.utils.data import DataLoader
-from mosei_dataset import Mosei_Dataset
-from meld_dataset import Meld_Dataset
-from model_LA import Model_LA
-from model_LAV import Model_LAV
 from train import evaluate
 
-warnings.filterwarnings("ignore")
+from predict_model.model_LA import Model_LA
+from predict_model.model_LAV import Model_LAV
+from dataset.mosei_dataset import Mosei_Dataset
+from dataset.meld_dataset import Meld_Dataset
 
 warnings.filterwarnings("ignore")
 
@@ -47,6 +45,8 @@ if __name__ == '__main__':
     evaluation_sets = list(sets) + ([private_set] if private_set is not None else [])
     print("Evaluated sets: ", str(evaluation_sets))
     # Creating dataloader
+
+    # train_dset只是用于提取token_to_ix、vocab_size、pretrained_emb
     train_dset = eval(args.dataloader)('train', args)
     loaders = {set: DataLoader(eval(args.dataloader)(set, args, train_dset.token_to_ix),
                                args.batch_size,
@@ -54,15 +54,15 @@ if __name__ == '__main__':
                                pin_memory = True) for set in evaluation_sets}
 
     # Creating net
-    net = eval(args.model)(args, train_dset.vocab_size, train_dset.pretrained_emb).cuda()
-
+    net = eval(args.model)(args, train_dset.vocab_size, train_dset.pretrained_emb)
+    if torch.cuda.is_available():
+        net = net.cuda()
     # Ensembling sets
     ensemble_preds = {set: {} for set in evaluation_sets}
     ensemble_accuracies = {set: [] for set in evaluation_sets}
 
     # Iterating over checkpoints
     for i, ckpt in enumerate(ckpts):
-
         if i >= index:
             break
 

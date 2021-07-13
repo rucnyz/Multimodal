@@ -1,13 +1,14 @@
 import argparse, os, random
 import torch
 from torch.utils.data import DataLoader
-from mosei_dataset import Mosei_Dataset
-from meld_dataset import Meld_Dataset
-from model_LA import Model_LA
-from model_LAV import Model_LAV
 from train import train
 import numpy as np
 from utils.compute_args import compute_args
+
+from predict_model.model_LA import Model_LA
+from predict_model.model_LAV import Model_LAV
+from dataset.mosei_dataset import Mosei_Dataset
+from dataset.meld_dataset import Meld_Dataset
 
 
 # try to commit tell me why～ second try
@@ -56,6 +57,8 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    # changing directory to the project root
+    os.chdir("../")
     # Base on args given, compute new args
     args = compute_args(parse_args())
 

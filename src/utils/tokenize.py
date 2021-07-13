@@ -1,6 +1,6 @@
 # $ wget https://github.com/explosion/spacy-models/releases/download/en_vectors_web_lg-2.1.0/en_vectors_web_lg-2.1.0.tar.gz -O en_vectors_web_lg-2.1.0.tar.gz
 # $ pip install en_vectors_web_lg-2.1.0.tar.gz
-import en_vectors_web_lg
+import spacy
 import re
 import numpy as np
 import os
@@ -37,7 +37,7 @@ def create_dict(key_to_sentence, dataroot, use_glove = True):
     spacy_tool = None
     pretrained_emb = []
     if use_glove:
-        spacy_tool = en_vectors_web_lg.load()
+        spacy_tool = spacy.load("en_vectors_web_lg")
         pretrained_emb.append(spacy_tool('UNK').vector)
 
     for k, v in key_to_sentence.items():
