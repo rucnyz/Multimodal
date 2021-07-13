@@ -265,8 +265,7 @@ class Block(nn.Module):
         ax = self.att_lang(x, x_mask)
         ay = self.att_audio(y, y_mask)
 
-        return self.norm_l(x + self.dropout(ax)), \
-               self.norm_i(y + self.dropout(ay))
+        return self.norm_l(x + self.dropout(ax)), self.norm_i(y + self.dropout(ay))
 
 
 class Model_LA(nn.Module):
@@ -310,7 +309,8 @@ class Model_LA(nn.Module):
 
         # Classification layers
         self.proj_norm = LayerNorm(2 * args.hidden_size)
-        self.proj = self.proj = nn.Linear(2 * args.hidden_size, args.ans_size)
+        self.proj = nn.Linear(2 * args.hidden_size, args.ans_size)
+
     # 这里_没有用
     def forward(self, x, y, _):
         x_mask = make_mask(x.unsqueeze(2))
