@@ -1,6 +1,6 @@
 #### Model
 
-The model Model_LA is the module used for the UMONS solution to the MOSEI dataset using only linguistic and acoustic
+The Model_LA is the module used for the UMONS solution to the MOSEI dataset using only linguistic and acoustic
 inputs.
 
 #### Environement
@@ -27,7 +27,7 @@ spacy_tool = spacy.load("en_vectors_web_lg")
 
 Download data from [here](https://drive.google.com/file/d/1tcVYIMcZdlDzGuJvnMtbMchKIK9ulW1P/view?usp=sharing).
 <br/>Unzip the files into the 'data' folder<br/>
-More informations about the data can be found in the 'data' folder<br/>
+More information about the data can be found in the 'data' folder<br/>
 
 #### Training
 
