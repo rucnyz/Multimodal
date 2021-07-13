@@ -1,26 +1,26 @@
-
 #### Model
 
-The model Model_AV is the module used for the UMONS solution to the MOSEI dataset using only linguistic and acoustic
-inputs.<br/>
-Results can be replicated at the following Google Colab
-sheet: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Ir00q2drUzJ6bwIoOLodPErS6NjleZG4?usp=sharing)
+The model Model_LA is the module used for the UMONS solution to the MOSEI dataset using only linguistic and acoustic
+inputs.
 
 #### Environement
 
-Create a 3.6 python environement with:
+Create a 3.8.5 python environement with:
 
 ```
-torch              1.2.0    
-torchvision        0.4.0   
-numpy              1.18.1    
+sklearn            0.24.2
+spacy              2.3.7
+torch              1.7.1    
+torchvision        0.8.2 
+tensorboard        2.5.0
+numpy              1.20.2    
 ```
 
-We use GloVe vectors from space. This can be installed to your environement using the following commands :
+We use GloVe vectors from space by using the following codes :
 
 ```
-wget https://github.com/explosion/spacy-models/releases/download/en_vectors_web_lg-2.1.0/en_vectors_web_lg-2.1.0.tar.gz -O en_vectors_web_lg-2.1.0.tar.gz
-pip install en_vectors_web_lg-2.1.0.tar.gz
+import spacy
+spacy_tool = spacy.load("en_vectors_web_lg")
 ```
 
 #### Data
