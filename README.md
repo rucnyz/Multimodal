@@ -24,12 +24,13 @@ spacy_tool = spacy.load("en_vectors_web_lg")
 ```
 Change the default version of python in macOS
 ```
+打开终端
 brew update
 brew install pyenv
 echo 'eval "$(pyenv init --path)"' >> ~/.zprofile
-(可能要重新打开terminal)
-pyenv versions
-pyenv global 3.x(versions中列出的3版本的那一个)
+
+pyenv versions(如果出现command not found重新打开terminal)
+pyenv global 3.x(上一步中列出的3版本的那一个)
 (再重新打开应该就生效了)
 ```
 #### Data
