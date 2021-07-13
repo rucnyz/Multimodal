@@ -22,7 +22,16 @@ We use GloVe vectors from space by using the following codes :
 import spacy
 spacy_tool = spacy.load("en_vectors_web_lg")
 ```
-
+Change the default version of python in macOS
+```
+brew update
+brew install pyenv
+echo 'eval "$(pyenv init --path)"' >> ~/.zprofile
+(可能要重新打开terminal)
+pyenv versions
+pyenv global 3.x(versions中列出的3版本的那一个)
+(再重新打开应该就生效了)
+```
 #### Data
 
 Download data from [here](https://drive.google.com/file/d/1tcVYIMcZdlDzGuJvnMtbMchKIK9ulW1P/view?usp=sharing).
