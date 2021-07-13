@@ -5,9 +5,11 @@ import torch
 import torch.nn as nn
 
 from utils.pred_func import *
+from torch.utils.tensorboard import SummaryWriter
 
 
 def train(net, train_loader, eval_loader, args):
+    writer = SummaryWriter("./logs_train")
     logfile = open(
         args.output + "/" + args.name +
         '/log_run.txt',
@@ -22,37 +24,40 @@ def train(net, train_loader, eval_loader, args):
 
     # Load the optimizer paramters
     optim = torch.optim.Adam(net.parameters(), lr = args.lr_base)
-
+    # Load the loss function
     loss_fn = args.loss_fn
+    if torch.cuda.is_available():
+        loss_fn = loss_fn.cuda()
     eval_accuracies = []
+    # train for each epoch
     for epoch in range(0, args.max_epoch):
-
         time_start = time.time()
         # z是视频文件，但这里没用
         for step, (id, x, y, z, ans,) in enumerate(train_loader):
-            loss_tmp = 0
             optim.zero_grad()
-            # x = x.cuda()
-            # y = y.cuda()
-            # z = z.cuda()
-            # ans = ans.cuda()
+            if torch.cuda.is_available():
+                x = x.cuda()
+                y = y.cuda()
+                z = z.cuda()
+                ans = ans.cuda()
             pred = net(x, y, z)
             loss = loss_fn(pred, ans)
             loss.backward()
 
-            loss_sum += loss.cpu().data.numpy()
-            loss_tmp += loss.cpu().data.numpy()
+            loss_sum += loss.item()
 
             print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m "
                   "remaining" % (
                       epoch + 1,
                       step,
                       int(len(train_loader.dataset) / args.batch_size),
-                      loss_tmp / args.batch_size,
+                      loss.item() / args.batch_size,
                       *[group['lr'] for group in optim.param_groups],
                       ((time.time() - time_start) / (step + 1)) * (
                               (len(train_loader.dataset) / args.batch_size) - step) / 60,
                   ), end = '          ')
+            # logging for tensorBoard
+            writer.add_scalar("train_loss_each_batch", loss.item() / args.batch_size, step)
 
             # Gradient norm clipping
             if args.grad_norm_clip > 0:
@@ -63,6 +68,9 @@ def train(net, train_loader, eval_loader, args):
 
             optim.step()
 
+            # logging for tensorBoard
+            # if step % 100 == 0:
+            #     writer.add_scalar("train_loss", loss.item(), step)
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {}s'.format(int(elapse_time)))
@@ -83,6 +91,10 @@ def train(net, train_loader, eval_loader, args):
             print('Evaluation...')
             accuracy, _ = evaluate(net, eval_loader, args)
             print('Accuracy :' + str(accuracy))
+            # logging for tensorBoard
+            writer.add_scalar("test_accuracy", accuracy, epoch)
+            writer.add_scalar("train_loss_each_epoch", loss_sum / len(train_loader.dataset), epoch)
+
             eval_accuracies.append(accuracy)
             if accuracy > best_eval_accuracy:
                 # Best
@@ -125,6 +137,7 @@ def train(net, train_loader, eval_loader, args):
                     return eval_accuracies
 
         loss_sum = 0
+        writer.close()
 
 
 def evaluate(net, eval_loader, args):
@@ -138,9 +151,10 @@ def evaluate(net, eval_loader, args):
             z,
             ans,
     ) in enumerate(eval_loader):
-        # x = x.cuda()
-        # y = y.cuda()
-        # z = z.cuda()
+        if torch.cuda.is_available():
+            x = x.cuda()
+            y = y.cuda()
+            z = z.cuda()
         pred = net(x, y, z).cpu().data.numpy()
 
         if not eval_loader.dataset.private_set:

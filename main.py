@@ -9,7 +9,8 @@ from train import train
 import numpy as np
 from utils.compute_args import compute_args
 
-#try to commit tell me why～ second try
+
+# try to commit tell me why～ second try
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -73,9 +74,9 @@ if __name__ == '__main__':
 
     # Net
     net = eval(args.model)(args, train_dset.vocab_size, train_dset.pretrained_emb)
-    # net = eval(args.model)(args, train_dset.vocab_size, train_dset.pretrained_emb).cuda()
+    if torch.cuda.is_available():
+        net = net.cuda()
     print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e6) + "M")
-    # net = net.cuda()
 
     # Create Checkpoint dir
     if not os.path.exists(os.path.join(args.output, args.name)):
