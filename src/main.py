@@ -56,7 +56,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    if (os.getcwd().endswith("src")):
+    if os.getcwd().endswith("src"):
         # change working directory to the project root
         os.chdir("../")
 
