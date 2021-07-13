@@ -56,8 +56,6 @@ def train(net, train_loader, eval_loader, args):
                       ((time.time() - time_start) / (step + 1)) * (
                               (len(train_loader.dataset) / args.batch_size) - step) / 60,
                   ), end = '          ')
-            # logging for tensorBoard
-            writer.add_scalar("train_loss_each_batch", loss.item() / args.batch_size, step)
 
             # Gradient norm clipping
             if args.grad_norm_clip > 0:
@@ -69,8 +67,8 @@ def train(net, train_loader, eval_loader, args):
             optim.step()
 
             # logging for tensorBoard
-            # if step % 100 == 0:
-            #     writer.add_scalar("train_loss", loss.item(), step)
+            if step % 100 == 0:
+                writer.add_scalar("train_loss_each_100batch", loss.item(), step)
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {}s'.format(int(elapse_time)))
@@ -142,28 +140,24 @@ def train(net, train_loader, eval_loader, args):
 
 def evaluate(net, eval_loader, args):
     accuracy = []
-    net.train(False)  # 和net.eval()效果一样,使得dropout和BatchNorm层参数被完全冻结
     preds = {}
-    for step, (
-            ids,
-            x,
-            y,
-            z,
-            ans,
-    ) in enumerate(eval_loader):
-        if torch.cuda.is_available():
-            x = x.cuda()
-            y = y.cuda()
-            z = z.cuda()
-        pred = net(x, y, z).cpu().data.numpy()
 
-        if not eval_loader.dataset.private_set:
-            ans = ans.cpu().data.numpy()
-            accuracy += list(eval(args.pred_func)(pred) == ans)
+    net.train(False)  # 和net.eval()效果一样,使得dropout和BatchNorm层参数被完全冻结
+    with torch.no_grad():
+        for step, (ids, x, y, z, ans,) in enumerate(eval_loader):
+            if torch.cuda.is_available():
+                x = x.cuda()
+                y = y.cuda()
+                z = z.cuda()
+            pred = net(x, y, z).cpu().data.numpy()
 
-        # Save preds
-        for id, p in zip(ids, pred):
-            preds[id] = p
+            if not eval_loader.dataset.private_set:
+                ans = ans.cpu().data.numpy()
+                accuracy += list(eval(args.pred_func)(pred) == ans)
+
+            # Save preds
+            for id, p in zip(ids, pred):
+                preds[id] = p
 
     net.train(True)  # 和net.train()效果一样，恢复训练模式
     return 100 * np.mean(np.array(accuracy)), preds
