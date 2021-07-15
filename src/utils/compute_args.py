@@ -8,8 +8,10 @@ def compute_args(args):
 
     if args.dataset == "MOSEI":
         args.dataloader = 'Mosei_Dataset'
-    if args.dataset == "MELD":
+    elif args.dataset == "MELD":
         args.dataloader = 'Meld_Dataset'
+    elif args.dataset == "MIMIC":
+        args.dataloader = 'Mimic_Dataset'
 
     # Loss function to use
     if args.dataset == 'MOSEI' and args.task == 'sentiment':

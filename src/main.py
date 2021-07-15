@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
 
     # Dataset and task
-    parser.add_argument('--dataset', type = str, choices = ['MELD', 'MOSEI'], default = 'MOSEI')
+    parser.add_argument('--dataset', type = str, choices = ['MELD', 'MOSEI','MIMIC'], default = 'MOSEI')
     parser.add_argument('--task', type = str, choices = ['sentiment', 'emotion'], default = 'sentiment')
     parser.add_argument('--task_binary', type = bool, default = False)
 
