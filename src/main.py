@@ -7,15 +7,17 @@ from src.train import train
 from src.utils.compute_args import compute_args
 from src.predict_model.model_LA import Model_LA
 from src.predict_model.model_LAV import Model_LAV
+from src.predict_model.model_TMC import TMC
 from src.dataset.mosei_dataset import Mosei_Dataset
 from src.dataset.meld_dataset import Meld_Dataset
+from src.dataset.UCI_dataset import UCI_Dataset
 
 
 # try to commit tell me why～
 def parse_args():
     parser = argparse.ArgumentParser()
     # Model
-    parser.add_argument('--model', type = str, default = "Model_LA", choices = ["Model_LA", "Model_LAV", "My_Model"])
+    parser.add_argument('--model', type = str, default = "Model_LA", choices = ["Model_LA", "Model_LAV", "TMC"])
     parser.add_argument('--layer', type = int, default = 4)
     parser.add_argument('--hidden_size', type = int, default = 512)
     parser.add_argument('--dropout_r', type = float, default = 0.1)

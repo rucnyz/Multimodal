@@ -7,7 +7,6 @@ from torch.utils.tensorboard import SummaryWriter
 from src.utils.pred_func import *
 
 
-
 def train(net, train_loader, eval_loader, args):
     writer = SummaryWriter("./logs_train")
     logfile = open(

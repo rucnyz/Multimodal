@@ -35,7 +35,9 @@ class UCI_Dataset(Dataset):
         # TODO 可能存在的预处理
 
     def __getitem__(self, idx):
-        # 返回8项数据
+        # 返回8项数据为一个字典
+        data = dict()
+        # 还没改好
         return idx, torch.from_numpy(self.fou_data), torch.from_numpy(self.fac_data), torch.from_numpy(
             self.kar_data), torch.from_numpy(self.pix_data), torch.from_numpy(self.zer_data), torch.from_numpy(
             self.mor_data), torch.from_numpy(self.full_labels)
