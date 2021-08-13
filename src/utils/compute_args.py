@@ -12,7 +12,8 @@ def compute_args(args):
         args.dataloader = 'Meld_Dataset'
     elif args.dataset == "MIMIC":
         args.dataloader = 'Mimic_Dataset'
-
+    elif args.dataset == "UCI":
+        args.dataset = "UCI_Dataset"
     # Loss function to use
     if args.dataset == 'MOSEI' and args.task == 'sentiment':
         args.loss_fn = torch.nn.CrossEntropyLoss(reduction = "sum")

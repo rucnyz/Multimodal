@@ -11,11 +11,11 @@ from src.dataset.mosei_dataset import Mosei_Dataset
 from src.dataset.meld_dataset import Meld_Dataset
 
 
-# try to commit tell me why～ second try
+# try to commit tell me why～
 def parse_args():
     parser = argparse.ArgumentParser()
     # Model
-    parser.add_argument('--model', type = str, default = "Model_LA", choices = ["Model_LA", "Model_LAV"])
+    parser.add_argument('--model', type = str, default = "Model_LA", choices = ["Model_LA", "Model_LAV", "My_Model"])
     parser.add_argument('--layer', type = int, default = 4)
     parser.add_argument('--hidden_size', type = int, default = 512)
     parser.add_argument('--dropout_r', type = float, default = 0.1)
@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
 
     # Dataset and task
-    parser.add_argument('--dataset', type = str, choices = ['MELD', 'MOSEI','MIMIC'], default = 'MOSEI')
+    parser.add_argument('--dataset', type = str, choices = ['MELD', 'MOSEI', 'MIMIC', 'UCI'], default = 'MOSEI')
     parser.add_argument('--task', type = str, choices = ['sentiment', 'emotion'], default = 'sentiment')
     parser.add_argument('--task_binary', type = bool, default = False)
 
