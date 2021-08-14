@@ -73,12 +73,12 @@ if __name__ == '__main__':
 
     # DataLoader
     train_dset = eval(args.dataloader)('train', args)
-    eval_dset = eval(args.dataloader)('valid', args, train_dset.token_to_ix)
+    eval_dset = eval(args.dataloader)('valid', args)
     train_loader = DataLoader(train_dset, args.batch_size, shuffle = True, num_workers = 8, pin_memory = True)
     eval_loader = DataLoader(eval_dset, args.batch_size, num_workers = 8, pin_memory = True)
 
     # Net
-    net = eval(args.model)(args, train_dset.vocab_size, train_dset.pretrained_emb)
+    net = eval(args.model)(args)
     if torch.cuda.is_available():
         net = net.cuda()
     print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e6) + "M")

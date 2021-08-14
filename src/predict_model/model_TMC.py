@@ -11,7 +11,9 @@ import torch.nn.functional as F
 
 # loss function
 def KL(alpha, c):
-    beta = torch.ones((1, c)).cuda()
+    beta = torch.ones((1, c))
+    if torch.cuda.is_available():
+        beta = beta.cuda()
     S_alpha = torch.sum(alpha, dim = 1, keepdim = True)
     S_beta = torch.sum(beta, dim = 1, keepdim = True)
     lnB = torch.lgamma(S_alpha) - torch.sum(torch.lgamma(alpha), dim = 1, keepdim = True)
@@ -68,7 +70,7 @@ class Classifier(nn.Module):
 
 class TMC(nn.Module):
 
-    def __init__(self, *args):
+    def __init__(self, args):
         """
         :param classes: Number of classification categories
         :param views: Number of views
@@ -150,7 +152,7 @@ class TMC(nn.Module):
         alpha_a = self.DS_Combin(alpha)
         evidence_a = alpha_a - 1
         loss += ce_loss(y, alpha_a, self.classes, global_step, self.lambda_epochs)
-        loss = torch.mean(loss)
+        loss = torch.sum(loss)
         return evidence, evidence_a, loss
 
     def infer(self, input_x):

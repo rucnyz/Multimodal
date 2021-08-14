@@ -24,23 +24,21 @@ def train(net, train_loader, eval_loader, args):
     # Load the optimizer paramters
     optim = torch.optim.Adam(net.parameters(), lr = args.lr_base)
     # Load the loss function
-    loss_fn = args.loss_fn
-    if torch.cuda.is_available():
-        loss_fn = loss_fn.cuda()
+    # loss_fn = args.loss_fn
+    # if torch.cuda.is_available():
+    #     loss_fn = loss_fn.cuda()
     eval_accuracies = []
     # train for each epoch
     for epoch in range(0, args.max_epoch):
         time_start = time.time()
-        # z是视频文件，但这里没用
-        for step, (id, x, y, z, ans,) in enumerate(train_loader):
+        for step, (id, X, ans) in enumerate(train_loader):
             optim.zero_grad()
             if torch.cuda.is_available():
-                x = x.cuda()
-                y = y.cuda()
-                z = z.cuda()
+                for i in range(len(X)):
+                    X[i] = X[i].cuda()
                 ans = ans.cuda()
-            pred = net(x, y, z)
-            loss = loss_fn(pred, ans)
+            evidences, evidence_a, loss = net(X, ans, step)
+            # loss = loss_fn(pred, ans)
             loss.backward()
 
             loss_sum += loss.item()
@@ -143,12 +141,10 @@ def evaluate(net, eval_loader, args):
 
     net.train(False)  # 和net.eval()效果一样,使得dropout和BatchNorm层参数被完全冻结
     with torch.no_grad():
-        for step, (ids, x, y, z, ans,) in enumerate(eval_loader):
+        for step, (ids, x, ans,) in enumerate(eval_loader):
             if torch.cuda.is_available():
                 x = x.cuda()
-                y = y.cuda()
-                z = z.cuda()
-            pred = net(x, y, z)
+            pred = net(x, ans, step)
 
             if not eval_loader.dataset.private_set:
                 ans = ans.cpu().data.numpy()

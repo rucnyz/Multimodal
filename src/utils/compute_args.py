@@ -40,5 +40,7 @@ def compute_args(args):
         args.pred_func = "multi_label"
     if args.dataset == 'MELD':
         args.pred_func = "amax"
+    if args.dataset == "UCI":
+        args.pred_func = "amax"
 
     return args
