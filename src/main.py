@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument('--max_epoch', type = int, default = 99)
     parser.add_argument('--opt', type = str, default = "Adam")
     parser.add_argument('--opt_params', type = str, default = "{'betas': '(0.9, 0.98)', 'eps': '1e-9'}")
-    parser.add_argument('--lr_base', type = float, default = 0.00005)
+    parser.add_argument('--lr_base', type = float, default = 0.0005)
     parser.add_argument('--lr_decay', type = float, default = 0.5)
     parser.add_argument('--lr_decay_times', type = int, default = 2)
     parser.add_argument('--warmup_epoch', type = float, default = 0)

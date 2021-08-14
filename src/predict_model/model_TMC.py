@@ -152,7 +152,7 @@ class TMC(nn.Module):
         alpha_a = self.DS_Combin(alpha)
         evidence_a = alpha_a - 1
         loss += ce_loss(y, alpha_a, self.classes, global_step, self.lambda_epochs)
-        loss = torch.sum(loss)
+        loss = torch.mean(loss)
         return evidence, evidence_a, loss
 
     def infer(self, input_x):
