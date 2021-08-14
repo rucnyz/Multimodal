@@ -16,22 +16,23 @@ def train(net, train_loader, eval_loader, args):
     )
     logfile.write(str(args))
 
-    loss_sum = 0
-    best_eval_accuracy = 0.0
+    best_eval_accuracy = 0
     early_stop = 0
     decay_count = 0
-
+    fluctuate_count = 0
     # Load the optimizer paramters
-    optim = torch.optim.Adam(net.parameters(), lr = args.lr_base)
+    optim = torch.optim.Adam(net.parameters(), lr = args.lr_base, weight_decay = 1e-5)
     # Load the loss function
     # loss_fn = args.loss_fn
     # if torch.cuda.is_available():
     #     loss_fn = loss_fn.cuda()
     eval_accuracies = []
+    train_images = len(train_loader.dataset) / args.batch_size
     # train for each epoch
     for epoch in range(0, args.max_epoch):
+        loss_sum = 0
         time_start = time.time()
-        for step, (id, X, ans) in enumerate(train_loader):
+        for step, (idx, X, ans) in enumerate(train_loader):
             optim.zero_grad()
             if torch.cuda.is_available():
                 for i in range(len(X)):
@@ -43,16 +44,12 @@ def train(net, train_loader, eval_loader, args):
 
             loss_sum += loss.item()
 
-            print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m "
-                  "remaining" % (
-                      epoch + 1,
-                      step,
-                      int(len(train_loader.dataset) / args.batch_size),
-                      loss.item() / args.batch_size,
-                      *[group['lr'] for group in optim.param_groups],
-                      ((time.time() - time_start) / (step + 1)) * (
-                              (len(train_loader.dataset) / args.batch_size) - step) / 60,
-                  ), end = '          ')
+            print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m ""remaining" % (
+                epoch + 1, step + 1, int(train_images), loss_sum / (step + 1),
+                *[group['lr'] for group in optim.param_groups],
+                ((time.time() - time_start) / (step + 1)) * (
+                        (len(train_loader.dataset) / args.batch_size) - step) / 60,),
+                  end = '          ')
 
             # Gradient norm clipping
             if args.grad_norm_clip > 0:
@@ -63,9 +60,8 @@ def train(net, train_loader, eval_loader, args):
 
             optim.step()
 
-            # logging for tensorBoard
-            if step % 20 == 0:
-                writer.add_scalar("train_loss_each_20batch", loss.item() / (20 * args.batch_size), step)
+        # logging for tensorBoard
+        writer.add_scalar("train_loss_each_epoch", loss_sum / train_images, epoch)
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {}s'.format(int(elapse_time)))
@@ -80,18 +76,16 @@ def train(net, train_loader, eval_loader, args):
             ', Speed(s/batch): ' + str(elapse_time / step) +
             '\n\n'
         )
-
         # Eval
         if epoch_finish >= args.eval_start:
-            print('Evaluation...')
-            accuracy, _ = evaluate(net, eval_loader, args)
+            print('Evaluation... {}'.format(fluctuate_count))
+            accuracy = evaluate(net, eval_loader, args)
             print('Accuracy :' + str(accuracy))
             # logging for tensorBoard
             writer.add_scalar("test_accuracy", accuracy, epoch)
-            writer.add_scalar("train_loss_each_epoch", loss_sum / len(train_loader.dataset), epoch)
-
             eval_accuracies.append(accuracy)
-            if accuracy > best_eval_accuracy:
+            if accuracy >= best_eval_accuracy:
+                fluctuate_count = 0
                 # Best
                 state = {
                     'state_dict': net.state_dict(),
@@ -105,8 +99,10 @@ def train(net, train_loader, eval_loader, args):
                 )
                 best_eval_accuracy = accuracy
                 early_stop = 0
-
+            elif fluctuate_count < 20:
+                fluctuate_count += 1
             elif decay_count < args.lr_decay_times:
+                fluctuate_count = 0
                 # Decay
                 print('LR Decay...')
                 decay_count += 1
@@ -115,7 +111,6 @@ def train(net, train_loader, eval_loader, args):
                 # adjust_lr(optim, args.lr_decay)
                 for group in optim.param_groups:
                     group['lr'] *= args.lr_decay
-
             else:
                 # Early stop
                 early_stop += 1
@@ -130,29 +125,23 @@ def train(net, train_loader, eval_loader, args):
                               '/best' + str(best_eval_accuracy) + "_" + str(args.seed) + '.pkl')
                     logfile.close()
                     return eval_accuracies
-
-        loss_sum = 0
-        writer.close()
+    writer.close()
+    print("---------------------------------------------")
+    print("Best evaluate accuracy:{}".format(best_eval_accuracy))
 
 
 def evaluate(net, eval_loader, args):
-    accuracy = []
-    preds = {}
-
+    accuracy = 0
+    all_num = 0
     net.train(False)  # 和net.eval()效果一样,使得dropout和BatchNorm层参数被完全冻结
     with torch.no_grad():
-        for step, (ids, x, ans,) in enumerate(eval_loader):
+        for step, (ids, x, ans) in enumerate(eval_loader):
             if torch.cuda.is_available():
                 x = x.cuda()
-            pred = net(x, ans, step)
-
-            if not eval_loader.dataset.private_set:
-                ans = ans.cpu().data.numpy()
-                accuracy += list(eval(args.pred_func)(pred) == ans)
-
-            # Save preds
-            for id, p in zip(ids, pred):
-                preds[id] = p
-
+            evidences, evidence_a, loss = net(x, ans, step)
+            _, predicted = torch.max(evidence_a.data, 1)
+            accuracy += (predicted == ans).sum().item()
+            all_num += ans.size(0)
+        accuracy = accuracy / all_num
     net.train(True)  # 和net.train()效果一样，恢复训练模式
-    return 100 * np.mean(np.array(accuracy)), preds
+    return 100 * np.array(accuracy)

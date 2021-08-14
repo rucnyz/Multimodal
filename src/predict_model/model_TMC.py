@@ -82,7 +82,7 @@ class TMC(nn.Module):
         classifier_dims = [[76], [216], [64], [240], [47], [6]]
         self.views = 6
         self.classes = 10
-        self.lambda_epochs = 1
+        self.lambda_epochs = 50
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
 
     def DS_Combin(self, alpha):

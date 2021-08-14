@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--batch_size', type = int, default = 64)
-    parser.add_argument('--max_epoch', type = int, default = 99)
+    parser.add_argument('--max_epoch', type = int, default = 500)
     parser.add_argument('--opt', type = str, default = "Adam")
     parser.add_argument('--opt_params', type = str, default = "{'betas': '(0.9, 0.98)', 'eps': '1e-9'}")
     parser.add_argument('--lr_base', type = float, default = 0.0005)
@@ -74,14 +74,13 @@ if __name__ == '__main__':
     # DataLoader
     train_dset = eval(args.dataloader)('train', args)
     eval_dset = eval(args.dataloader)('valid', args)
-    train_loader = DataLoader(train_dset, args.batch_size, shuffle = True, num_workers = 8, pin_memory = True)
-    eval_loader = DataLoader(eval_dset, args.batch_size, num_workers = 8, pin_memory = True)
-
+    train_loader = DataLoader(train_dset, args.batch_size, shuffle = True, pin_memory = True)
+    eval_loader = DataLoader(eval_dset, args.batch_size, pin_memory = True)
     # Net
     net = eval(args.model)(args)
     if torch.cuda.is_available():
         net = net.cuda()
-    print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e6) + "M")
+    print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e3) + "k")
 
     # Create Checkpoint dir
     if not os.path.exists(os.path.join(args.output, args.name)):
