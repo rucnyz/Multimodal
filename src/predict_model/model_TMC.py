@@ -120,27 +120,28 @@ class TMC(nn.Module):
             C = bb_sum - bb_diag
 
             # calculate b^a
-            b_a = (torch.mul(b[0], b[1]) + bu + ub) / ((1 - C).view(-1, 1).expand(b[0].shape))
+            b_all = (torch.mul(b[0], b[1]) + bu + ub) / ((1 - C).view(-1, 1).expand(b[0].shape))
             # calculate u^a
-            u_a = torch.mul(u[0], u[1]) / ((1 - C).view(-1, 1).expand(u[0].shape))
+            u_all = torch.mul(u[0], u[1]) / ((1 - C).view(-1, 1).expand(u[0].shape))
 
             # calculate new S
-            S_a = self.classes / u_a
+            S_a = self.classes / u_all
             # calculate new e_k
-            e_a = torch.mul(b_a, S_a.expand(b_a.shape))
-            alpha_a = e_a + 1
-            return alpha_a
+            e_a = torch.mul(b_all, S_a.expand(b_all.shape))
+            alpha_all = e_a + 1
+            return alpha_all
 
         for v in range(len(alpha) - 1):
             if v == 0:
-                alpha_a = DS_Combin_two(alpha[0], alpha[1])
+                alpha_all = DS_Combin_two(alpha[0], alpha[1])
             else:
-                alpha_a = DS_Combin_two(alpha_a, alpha[v + 1])
-        return alpha_a
+                alpha_all = DS_Combin_two(alpha_all, alpha[v + 1])
+        return alpha_all
 
     def forward(self, X, y, global_step):
         # step one
         evidence = self.infer(X)
+        # evidence:每个模态的预测结果
         loss = 0
         alpha = dict()
         for v_num in range(len(X)):
@@ -149,11 +150,12 @@ class TMC(nn.Module):
             # step three
             loss += ce_loss(y, alpha[v_num], self.classes, global_step, self.lambda_epochs)
         # step four
-        alpha_a = self.DS_Combin(alpha)
-        evidence_a = alpha_a - 1
-        loss += ce_loss(y, alpha_a, self.classes, global_step, self.lambda_epochs)
+        alpha_all = self.DS_Combin(alpha)
+        evidence_all = alpha_all - 1
+        # evidence_all:最终的预测结果
+        loss += ce_loss(y, alpha_all, self.classes, global_step, self.lambda_epochs)
         loss = torch.mean(loss)
-        return evidence, evidence_a, loss
+        return evidence, evidence_all, loss
 
     def infer(self, input_x):
         """

@@ -38,7 +38,7 @@ def train(net, train_loader, eval_loader, args):
                 for i in range(len(X)):
                     X[i] = X[i].cuda()
                 ans = ans.cuda()
-            evidences, evidence_a, loss = net(X, ans, step)
+            evidence, evidence_all, loss = net(X, ans, step)
             # loss = loss_fn(pred, ans)
             loss.backward()
 
@@ -64,7 +64,7 @@ def train(net, train_loader, eval_loader, args):
         writer.add_scalar("train_loss_each_epoch", loss_sum / train_images, epoch)
         time_end = time.time()
         elapse_time = time_end - time_start
-        print('Finished in {}s'.format(int(elapse_time)))
+        print('Finished in {}s'.format(elapse_time))
         epoch_finish = epoch + 1
 
         # Logging
@@ -138,8 +138,8 @@ def evaluate(net, eval_loader, args):
         for step, (ids, x, ans) in enumerate(eval_loader):
             if torch.cuda.is_available():
                 x = x.cuda()
-            evidences, evidence_a, loss = net(x, ans, step)
-            _, predicted = torch.max(evidence_a.data, 1)
+            evidences, evidence_all, loss = net(x, ans, step)
+            _, predicted = torch.max(evidence_all.data, 1)
             accuracy += (predicted == ans).sum().item()
             all_num += ans.size(0)
         accuracy = accuracy / all_num
