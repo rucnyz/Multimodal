@@ -3,7 +3,7 @@
 # @Author  : nieyuzhou
 # @File    : model_TMC.py
 # @Software: PyCharm
-
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -79,8 +79,8 @@ class TMC(nn.Module):
         """
         super(TMC, self).__init__()
 
-        classifier_dims = [[76], [216], [64], [240], [47], [6]]
-        self.views = 6
+        classifier_dims = args.classifier_dims
+        self.views = args.views
         self.classes = 10
         self.lambda_epochs = 50
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
@@ -149,6 +149,7 @@ class TMC(nn.Module):
             alpha[v_num] = evidence[v_num] + 1
             # step three
             loss += ce_loss(y, alpha[v_num], self.classes, global_step, self.lambda_epochs)
+
         # step four
         alpha_all = self.DS_Combin(alpha)
         evidence_all = alpha_all - 1

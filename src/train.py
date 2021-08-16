@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from src.utils.pred_func import *
+from utils.pred_func import *
 
 
 def train(net, train_loader, eval_loader, args):
@@ -137,7 +137,9 @@ def evaluate(net, eval_loader, args):
     with torch.no_grad():
         for step, (ids, x, ans) in enumerate(eval_loader):
             if torch.cuda.is_available():
-                x = x.cuda()
+                for i in range(len(x)):
+                    x[i] = x[i].cuda()
+                ans = ans.cuda()
             evidences, evidence_all, loss = net(x, ans, step)
             _, predicted = torch.max(evidence_all.data, 1)
             accuracy += (predicted == ans).sum().item()

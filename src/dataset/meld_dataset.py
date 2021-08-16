@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from src.utils.tokenize import tokenize, create_dict, sent_to_ix, cmumosei_2, cmumosei_7, pad_feature
+from utils.tokenize import tokenize, create_dict, sent_to_ix, cmumosei_2, cmumosei_7, pad_feature
 
 
 TRAIN_SET = ['dia0_utt0', 'dia0_utt1', 'dia0_utt2', 'dia0_utt3', 'dia0_utt4', 'dia0_utt5', 'dia0_utt6', 'dia0_utt7',

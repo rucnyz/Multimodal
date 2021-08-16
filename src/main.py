@@ -3,14 +3,14 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 
-from src.train import train
-from src.utils.compute_args import compute_args
-from src.predict_model.model_LA import Model_LA
-from src.predict_model.model_LAV import Model_LAV
-from src.predict_model.model_TMC import TMC
-from src.dataset.mosei_dataset import Mosei_Dataset
-from src.dataset.meld_dataset import Meld_Dataset
-from src.dataset.UCI_dataset import UCI_Dataset
+from train import train
+from utils.compute_args import compute_args
+from predict_model.model_LA import Model_LA
+from predict_model.model_LAV import Model_LAV
+from predict_model.model_TMC import TMC
+from dataset.mosei_dataset import Mosei_Dataset
+from dataset.meld_dataset import Meld_Dataset
+from dataset.UCI_dataset import UCI_Dataset
 
 
 # try to commit tell me why～
@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--batch_size', type = int, default = 64)
-    parser.add_argument('--max_epoch', type = int, default = 500)
+    parser.add_argument('--max_epoch', type = int, default = 100)
     parser.add_argument('--opt', type = str, default = "Adam")
     parser.add_argument('--opt_params', type = str, default = "{'betas': '(0.9, 0.98)', 'eps': '1e-9'}")
     parser.add_argument('--lr_base', type = float, default = 0.0005)
@@ -52,6 +52,7 @@ def parse_args():
     parser.add_argument('--dataset', type = str, choices = ['MELD', 'MOSEI', 'MIMIC', 'UCI'], default = 'MOSEI')
     parser.add_argument('--task', type = str, choices = ['sentiment', 'emotion'], default = 'sentiment')
     parser.add_argument('--task_binary', type = bool, default = False)
+    parser.add_argument('--num_worker', type = int, default = 0)
 
     args = parser.parse_args()
     return args
@@ -61,7 +62,6 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         # change working directory to the project root
         os.chdir("../")
-
     # Base on args given, compute new args
     args = compute_args(parse_args())
 
@@ -74,8 +74,9 @@ if __name__ == '__main__':
     # DataLoader
     train_dset = eval(args.dataloader)('train', args)
     eval_dset = eval(args.dataloader)('valid', args)
-    train_loader = DataLoader(train_dset, args.batch_size, shuffle = True, pin_memory = True)
-    eval_loader = DataLoader(eval_dset, args.batch_size, pin_memory = True)
+    train_loader = DataLoader(train_dset, args.batch_size, num_workers = args.num_worker, shuffle = True,
+                              pin_memory = True)
+    eval_loader = DataLoader(eval_dset, args.batch_size, num_workers = args.num_worker, pin_memory = True)
     # Net
     net = eval(args.model)(args)
     if torch.cuda.is_available():

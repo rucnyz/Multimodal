@@ -27,12 +27,17 @@ class UCI_Dataset(Dataset):
         assert name in ['train', 'valid', 'test']
         self.name = name
         self.args = args
-        full_data, full_labels = load_UCImultifeature()
+        full_data, full_labels = load_UCImultifeature(views = [0,1,2])
         num = len(full_labels)
+        classifier_dims = []
+        views = len(full_data)
         if name == "train":
-            for v in range(len(full_data)):
+            for v in range(views):
                 full_data[v] = full_data[v][:int(num * 4 / 5)]
+                classifier_dims.append([full_data[v].shape[1]])
             full_labels = full_labels[:int(num * 4 / 5)]
+            args.views = views
+            args.classifier_dims = classifier_dims
         elif name == "valid":
             for v in range(len(full_data)):
                 full_data[v] = full_data[v][int(num * 4 / 5):]
@@ -46,6 +51,21 @@ class UCI_Dataset(Dataset):
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
         for v in range(len(full_data)):
             self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
+
+
+        # 测试模态缺失的情况
+        # self.full_data[0][:] = 0
+        # self.full_data[1][:] = 0
+        # self.full_data[2][:] = 0
+        # self.full_data[3][:] = 0
+        # self.full_data[4][:] = 0
+        # self.full_data[5][:] = 0
+        # 只有第五个100次epoch为19.5
+        # 只有第四个100次epoch为53.25
+        # 只有第三个100次epoch为92.25
+        # 只有第二个100次epoch为63.0
+        # 只有第一个100次epoch为74.0
+        # 只有第零个100次epoch为57.0
 
     def __getitem__(self, idx):
         data = dict()
