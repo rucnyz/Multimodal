@@ -1,6 +1,5 @@
 import os
 import time
-import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
@@ -131,9 +130,9 @@ def train(net, train_loader, eval_loader, args):
 
 
 def evaluate(net, eval_loader, args):
+    net.train(False)  # ==net.eval(),使得dropout和BatchNorm层参数被完全冻结
     accuracy = 0
     all_num = 0
-    net.train(False)  # 和net.eval()效果一样,使得dropout和BatchNorm层参数被完全冻结
     with torch.no_grad():
         for step, (ids, x, ans) in enumerate(eval_loader):
             if torch.cuda.is_available():
@@ -141,9 +140,8 @@ def evaluate(net, eval_loader, args):
                     x[i] = x[i].cuda()
                 ans = ans.cuda()
             evidences, evidence_all, loss = net(x, ans, step)
-            _, predicted = torch.max(evidence_all.data, 1)
-            accuracy += (predicted == ans).sum().item()
+            accuracy += eval(args.pred_func)(evidence_all, ans)
             all_num += ans.size(0)
         accuracy = accuracy / all_num
-    net.train(True)  # 和net.train()效果一样，恢复训练模式
+    net.train(True)  # ==net.train()，恢复训练模式
     return 100 * np.array(accuracy)
