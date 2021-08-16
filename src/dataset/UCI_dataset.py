@@ -3,20 +3,12 @@
 # @Author  : nieyuzhou
 # @File    : UCI_dataset.py
 # @Software: PyCharm
-import torch
 import numpy as np
+import torch
 from mvlearn.datasets import load_UCImultifeature
-from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset
 
-
-def normalize(x, min = 0):
-    if min == 0:
-        scaler = MinMaxScaler([0, 1])
-    else:
-        scaler = MinMaxScaler((-1, 1))
-    norm_x = scaler.fit_transform(x)
-    return norm_x
+from utils.preprocess import normalize
 
 
 class UCI_Dataset(Dataset):
@@ -27,7 +19,9 @@ class UCI_Dataset(Dataset):
         assert name in ['train', 'valid', 'test']
         self.name = name
         self.args = args
-        full_data, full_labels = load_UCImultifeature(views = [0,1,2])
+
+        full_data, full_labels = load_UCImultifeature()
+        args.classes = full_labels.max()+1
         num = len(full_labels)
         classifier_dims = []
         views = len(full_data)
@@ -50,10 +44,12 @@ class UCI_Dataset(Dataset):
         # 6 morphological features
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
         for v in range(len(full_data)):
-            self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
+            self.full_data[v] = torch.from_numpy(normalize(full_data[v], -1).astype(np.float32))
 
 
         # 测试模态缺失的情况
+        # 测试2、4(83.25)和2、3、4(92.25)的情况
+        # 缺3：缺一半 83.75、缺100份 89.25、缺50份 91.0
         # self.full_data[0][:] = 0
         # self.full_data[1][:] = 0
         # self.full_data[2][:] = 0

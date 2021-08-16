@@ -81,7 +81,7 @@ class TMC(nn.Module):
 
         classifier_dims = args.classifier_dims
         self.views = args.views
-        self.classes = 10
+        self.classes = args.classes
         self.lambda_epochs = 50
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
 

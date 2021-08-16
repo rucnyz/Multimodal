@@ -5,38 +5,21 @@ from torch.utils.data import DataLoader
 
 from train import train
 from utils.compute_args import compute_args
-from predict_model.model_LA import Model_LA
-from predict_model.model_LAV import Model_LAV
 from predict_model.model_TMC import TMC
-from dataset.mosei_dataset import Mosei_Dataset
-from dataset.meld_dataset import Meld_Dataset
 from dataset.UCI_dataset import UCI_Dataset
+from dataset.multi_view_dataset import Multiview_Dataset
 
 
 # try to commit tell me why～
 def parse_args():
     parser = argparse.ArgumentParser()
     # Model
-    parser.add_argument('--model', type = str, default = "Model_LA", choices = ["Model_LA", "Model_LAV", "TMC"])
-    parser.add_argument('--layer', type = int, default = 4)
-    parser.add_argument('--hidden_size', type = int, default = 512)
-    parser.add_argument('--dropout_r', type = float, default = 0.1)
-    parser.add_argument('--multi_head', type = int, default = 8)
-    parser.add_argument('--ff_size', type = int, default = 2048)
-    parser.add_argument('--word_embed_size', type = int, default = 300)
-
-    # Data
-    parser.add_argument('--lang_seq_len', type = int, default = 60)
-    parser.add_argument('--audio_seq_len', type = int, default = 60)
-    parser.add_argument('--video_seq_len', type = int, default = 60)
-    parser.add_argument('--audio_feat_size', type = int, default = 80)
-    parser.add_argument('--video_feat_size', type = int, default = 512)
-
+    parser.add_argument('--model', type = str, default = "TMC", choices = ["Model_LA", "Model_LAV", "TMC"])
     # Training
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--batch_size', type = int, default = 64)
-    parser.add_argument('--max_epoch', type = int, default = 100)
+    parser.add_argument('--max_epoch', type = int, default = 700)
     parser.add_argument('--opt', type = str, default = "Adam")
     parser.add_argument('--opt_params', type = str, default = "{'betas': '(0.9, 0.98)', 'eps': '1e-9'}")
     parser.add_argument('--lr_base', type = float, default = 0.0005)
@@ -47,11 +30,10 @@ def parse_args():
     parser.add_argument('--eval_start', type = int, default = 0)
     parser.add_argument('--early_stop', type = int, default = 3)
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
-
     # Dataset and task
-    parser.add_argument('--dataset', type = str, choices = ['MELD', 'MOSEI', 'MIMIC', 'UCI'], default = 'MOSEI')
-    parser.add_argument('--task', type = str, choices = ['sentiment', 'emotion'], default = 'sentiment')
-    parser.add_argument('--task_binary', type = bool, default = False)
+    parser.add_argument('--dataset', type = str,
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI'],
+                        default = 'UCI')
     parser.add_argument('--num_worker', type = int, default = 0)
 
     args = parser.parse_args()

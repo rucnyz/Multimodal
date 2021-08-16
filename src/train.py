@@ -99,7 +99,7 @@ def train(net, train_loader, eval_loader, args):
                 )
                 best_eval_accuracy = accuracy
                 early_stop = 0
-            elif fluctuate_count < 20:
+            elif fluctuate_count < 30:
                 fluctuate_count += 1
             elif decay_count < args.lr_decay_times:
                 fluctuate_count = 0
