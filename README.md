@@ -1,27 +1,20 @@
 #### Model
 
-The Model_LA is the module used for the UMONS solution to the MOSEI dataset using only linguistic and acoustic
-inputs.
+The TMC is the module used for the several multiview dataset 
 
 #### Environement
 
-Create a 3.8.5 python environement with:
+Create a 3.8.10 python environement with:
 
 ```
 sklearn            0.24.2
-spacy              2.3.7
+scipy              1.6.2
 torch              1.9.0    
 torchvision        0.10.0 
 tensorboard        2.5.0
-numpy              1.20.2    
+numpy              1.20.2                 
 ```
 
-We use GloVe vectors from space by using the following codes :
-
-```
-import spacy
-spacy_tool = spacy.load("en_vectors_web_lg")
-```
 Change the default version of python in macOS
 ```
 打开终端
@@ -35,22 +28,25 @@ pyenv global 3.x(上一步中列出的3版本的那一个)
 ```
 #### Data
 
-Download data from [here](https://drive.google.com/file/d/1tcVYIMcZdlDzGuJvnMtbMchKIK9ulW1P/view?usp=sharing).
-<br/>Unzip the files into the 'data' folder<br/>
-More information about the data can be found in the 'data' folder<br/>
+- [UCI数据集来源&简要测试](https://github.com/mvlearn/mvlearn)
+- [多模态数据集来源](https://github.com/yeqinglee/mvdata)
+
+#### Related Code：
+- [借鉴的代码框架](https://github.com/jbdel/MOSEI_UMONS)
+- [借鉴的多模态分类模型](https://github.com/hanmenghan/TMC)
+- [mimic数据预处理](https://github.com/YerevaNN/mimic3-benchmarks)
+
 
 #### Training
 
-To train a Model_AV model on the emotion labels, use the following command :
+To train a TMC model on the UCI labels, use the following command :
 
 ```
-python main.py --model Model_LA --name mymodel --task emotion --multi_head 4 --ff_size 1024 --hidden_size  512 --layer 4 --batch_size 32 --lr_base 0.0001 --dropout_r 0.1
+python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 0.0003 --dataset UCI
 ```
 
 Checkpoints are created in folder `ckpt/mymodel`
 
-Argument `task` can be set to `emotion` or `sentiment`. To make a binarized sentiment training (positive or negative),
-use `--task_binary True`
 
 #### Evaluation
 
@@ -67,29 +63,17 @@ By default, the script globs all the training checkpoints inside the folder and 
 
 #### Results:
 
-Results are run on a single GeForce GTX 1080 Ti.<br>
-Training performances:
-| Modality | Memory Usage | GPU Usage | sec / epoch | Parameters | Checkpoint size | | ------------- |:-------------:|:
--------------:|:-------------:|:-------------:|:-------------:| | Linguistic + acoustic | 320 Mb | 2400 MiB | 103 | ~ 33
-M | 397 Mb | Linguistic + acoustic + vision |
+UCI dataset
 
-You should approximate the following results :
+|训练集缺失3模态的比例|Accuracy(234模态)<br>(100epoch)|Accuracy(234模态)<br>(700epoch或达到提前结束训练条件)|Accuracy(全模态)<br>(700epoch或达到提前结束训练条件)|
+|:----|:----|:----|:----|
+|100%|83.25|92|96.5|
+|50%|83.75|91.25(379)|96.5|
+|25%|80.5|93.75|96.5|
+|5%|89.25|93.75(477)|96.25|
+|2.5%|91.0|94(497)|96.25|
+|0%|92.25|94(520)|96.25|
 
-| Task Accuracy  |     val | test | test ensemble | epochs | 
-| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
-| Sentiment-7    | 43.61   |  43.90  | 45.36  | 6
-| Sentiment-2    |  82.30  |  81.53  | 82.26  |  8
-| Emotion-6      | 81.21   |  81.29  | 81.48  |  3
-
-Ensemble results are of max 5 single models <br>
-7-class and 2-class sentiment and emotion models have been train according to the
-instructions [here](https://github.com/A2Zadeh/CMU-MultimodalSDK/blob/master/mmsdk/mmdatasdk/dataset/standard_datasets/CMU_MOSEI/README.md).<br>
 
 #### Pre-trained checkpoints:
 
-Result `Sentiment-7 ensemble` is obtained from these
-checkpoints : [Download Link](https://drive.google.com/file/d/11BKBbxp2tNZ6Ai1YD-pPrievffYh7orM/view?usp=sharing)<br/>
-Result `Sentiment-2 ensemble` is obtained from these
-checkpoints : [Download Link](https://drive.google.com/file/d/15PanBXsxXzvmDsVuA5qiWQd33ssezjxn/view?usp=sharing)<br/>
-Result `Emotion ensemble` is obtained from these
-checkpoints : [Download Link](https://drive.google.com/file/d/1GyXRWhtf0_sJQacy5wT8vHoynwHkMo79/view?usp=sharing)<br/>
