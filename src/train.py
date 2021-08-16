@@ -1,3 +1,4 @@
+import math
 import os
 import time
 import torch.nn as nn
@@ -44,11 +45,11 @@ def train(net, train_loader, eval_loader, args):
             loss_sum += loss.item()
 
             print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m ""remaining" % (
-                epoch + 1, step + 1, int(train_images), loss_sum / (step + 1),
+                epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1),
                 *[group['lr'] for group in optim.param_groups],
                 ((time.time() - time_start) / (step + 1)) * (
                         (len(train_loader.dataset) / args.batch_size) - step) / 60,),
-                  end = '          ')
+                  end = '   ')
 
             # Gradient norm clipping
             if args.grad_norm_clip > 0:
@@ -63,25 +64,29 @@ def train(net, train_loader, eval_loader, args):
         writer.add_scalar("train_loss_each_epoch", loss_sum / train_images, epoch)
         time_end = time.time()
         elapse_time = time_end - time_start
-        print('Finished in {}s'.format(elapse_time))
+        print('Finished in {:.4f}s'.format(elapse_time))
         epoch_finish = epoch + 1
 
         # Logging
         logfile.write(
             'Epoch: ' + str(epoch_finish) +
-            ', Loss: ' + str(loss_sum / len(train_loader.dataset)) +
+            ', Loss: ' + str(loss_sum / train_images) +
             ', Lr: ' + str([group['lr'] for group in optim.param_groups]) + '\n' +
-            'Elapsed time: ' + str(int(elapse_time)) +
-            ', Speed(s/batch): ' + str(elapse_time / step) +
-            '\n\n'
+            'Elapsed time: ' + str(elapse_time) +
+            '\n'
         )
         # Eval
         if epoch_finish >= args.eval_start:
             print('Evaluation... {}'.format(fluctuate_count))
             accuracy = evaluate(net, eval_loader, args)
             print('Accuracy :' + str(accuracy))
-            # logging for tensorBoard
+            # logging for tensorBoard and file
             writer.add_scalar("test_accuracy", accuracy, epoch)
+            logfile.write(
+                'Evaluation Accuracy: ' + str(accuracy) +
+                '\n\n'
+            )
+
             eval_accuracies.append(accuracy)
             if accuracy >= best_eval_accuracy:
                 fluctuate_count = 0
@@ -127,6 +132,10 @@ def train(net, train_loader, eval_loader, args):
     writer.close()
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))
+    logfile.write(
+        '-----------------------------------------------------\n'
+        'Best evaluate accuracy:' + str(best_eval_accuracy)
+    )
 
 
 def evaluate(net, eval_loader, args):

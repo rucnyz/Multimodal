@@ -21,7 +21,7 @@ class UCI_Dataset(Dataset):
         self.args = args
 
         full_data, full_labels = load_UCImultifeature()
-        args.classes = full_labels.max()+1
+        args.classes = int(full_labels.max() + 1)
         num = len(full_labels)
         classifier_dims = []
         views = len(full_data)
@@ -45,7 +45,6 @@ class UCI_Dataset(Dataset):
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
         for v in range(len(full_data)):
             self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
-
 
         # 测试模态缺失的情况
         # 测试2、4(83.25)和2、3、4(92.25)的情况

@@ -8,7 +8,9 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 import scipy.io as sio
-from utils.preprocess import normalize
+
+from utils.shuffle import *
+from utils.preprocess import *
 
 
 class Multiview_Dataset(Dataset):
@@ -20,31 +22,30 @@ class Multiview_Dataset(Dataset):
         self.args = args
         self.dataset = args.dataset
         self.full_data = dict()
+        # 导入数据
         root = os.getcwd()
         dataset = sio.loadmat(root + "\\data\\" + self.dataset + ".mat")
-        full_labels = dataset["Y"]
-        args.classes = full_labels.max() + 1
-
+        full_labels = np.squeeze(dataset["Y"])
+        full_labels = full_labels - full_labels.min()
         full_data = np.squeeze(dataset["X"])
+
+        args.classes = int(full_labels.max() + 1)
         self.num = len(full_labels)
         classifier_dims = []
         views = len(full_data)
-
-        if self.name == "train":
+        # 打乱数据划分数据集
+        if name == "train":
+            full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
             for v in range(views):
-                self.full_data[v] = full_data[v][:int(self.num * 4 / 5)]
                 classifier_dims.append([full_data[v].shape[1]])
-            self.full_labels = full_labels[:int(self.num * 4 / 5)]
             args.views = views
             args.classifier_dims = classifier_dims
         elif name == "valid":
-            for v in range(views):
-                self.full_data[v] = full_data[v][int(self.num * 4 / 5):]
-            self.full_labels = full_labels[int(self.num * 4 / 5):]
+            full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
 
         for v in range(len(full_data)):
-            self.full_data[v] = torch.from_numpy(normalize(self.full_data[v]).astype(np.float32))
-        self.full_labels = torch.from_numpy(self.full_labels.astype(np.int64))
+            self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
+        self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
 
     def __getitem__(self, idx):
         data = dict()
