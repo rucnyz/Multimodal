@@ -33,7 +33,7 @@ class UCI_Dataset(Dataset):
             args.views = views
             args.classifier_dims = classifier_dims
         elif name == "valid":
-            for v in range(len(full_data)):
+            for v in range(views):
                 full_data[v] = full_data[v][int(num * 4 / 5):]
             full_labels = full_labels[int(num * 4 / 5):]
         # 76 Fourier coefficients of the character shapes
@@ -44,7 +44,7 @@ class UCI_Dataset(Dataset):
         # 6 morphological features
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
         for v in range(len(full_data)):
-            self.full_data[v] = torch.from_numpy(normalize(full_data[v], -1).astype(np.float32))
+            self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
 
 
         # 测试模态缺失的情况

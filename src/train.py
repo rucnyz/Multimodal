@@ -95,7 +95,7 @@ def train(net, train_loader, eval_loader, args):
                 torch.save(
                     state,
                     args.output + "/" + args.name +
-                    '/best' + str(args.seed) + '.pkl'
+                    '/best' + str(args.seed) + str(args.dataset) + '.pkl'
                 )
                 best_eval_accuracy = accuracy
                 early_stop = 0
@@ -107,7 +107,7 @@ def train(net, train_loader, eval_loader, args):
                 print('LR Decay...')
                 decay_count += 1
                 net.load_state_dict(torch.load(args.output + "/" + args.name +
-                                               '/best' + str(args.seed) + '.pkl')['state_dict'])
+                                               '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
                 # adjust_lr(optim, args.lr_decay)
                 for group in optim.param_groups:
                     group['lr'] *= args.lr_decay
@@ -120,9 +120,9 @@ def train(net, train_loader, eval_loader, args):
                     logfile.write('best_overall_acc :' + str(best_eval_accuracy) + '\n\n')
                     print('best_eval_acc :' + str(best_eval_accuracy) + '\n\n')
                     os.rename(args.output + "/" + args.name +
-                              '/best' + str(args.seed) + '.pkl',
+                              '/best' + str(args.seed) + str(args.dataset) + '.pkl',
                               args.output + "/" + args.name +
-                              '/best' + str(best_eval_accuracy) + "_" + str(args.seed) + '.pkl')
+                              '/best' + str(best_eval_accuracy) + "_" + str(args.seed) + str(args.dataset) + '.pkl')
                     logfile.close()
                     return eval_accuracies
     writer.close()
