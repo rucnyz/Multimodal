@@ -15,7 +15,7 @@ class Classifier(nn.Module):
         self.fc = nn.ModuleList()
         for i in range(self.num_layers - 1):
             self.fc.append(nn.Linear(classifier_dims[i], classifier_dims[i + 1]))
-        self.fc.append(nn.Linear(classifier_dims[self.num_layers - 1], classes))
+        self.fc.append(nn.Linear(classifier_dims[self.num_layers - 1], classes, bias = False))
         self.fc.append(nn.Softplus())
 
     def forward(self, x):

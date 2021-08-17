@@ -44,8 +44,15 @@ class Multiview_Dataset(Dataset):
             full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
 
         for v in range(len(full_data)):
-            self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
+            if args.dataset == "NUSWIDEOBJ":
+                self.full_data[v] = torch.from_numpy(full_data[v].astype(np.float32))
+            else:
+                self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
+
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
+        # 测试模态缺失的情况
+        # if name == "train":
+        #     self.full_data[1][:800] = 0
 
     def __getitem__(self, idx):
         data = dict()

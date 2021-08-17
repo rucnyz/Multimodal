@@ -20,7 +20,7 @@ class UCI_Dataset(Dataset):
         self.name = name
         self.args = args
 
-        full_data, full_labels = load_UCImultifeature()
+        full_data, full_labels = load_UCImultifeature(views = [4, 5])
         args.classes = int(full_labels.max() + 1)
         num = len(full_labels)
         classifier_dims = []
@@ -46,10 +46,10 @@ class UCI_Dataset(Dataset):
         for v in range(len(full_data)):
             self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
 
+
         # 测试模态缺失的情况
-        # 测试2、4(83.25)和2、3、4(92.25)的情况
-        # 缺3：缺一半 83.75、缺100份 89.25、缺50份 91.0
-        # self.full_data[0][:] = 0
+        if name == "train":
+            self.full_data[0][:800] = 0
         # self.full_data[1][:] = 0
         # self.full_data[2][:] = 0
         # self.full_data[3][:] = 0
@@ -60,7 +60,7 @@ class UCI_Dataset(Dataset):
         # 只有第三个100次epoch为92.25
         # 只有第二个100次epoch为63.0
         # 只有第一个100次epoch为74.0
-        # 只有第零个100次epoch为57.0
+        # 只有第零个100次epoch为66.75
 
     def __getitem__(self, idx):
         data = dict()

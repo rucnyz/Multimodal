@@ -8,13 +8,14 @@ from utils.pred_func import *
 
 
 def train(net, train_loader, eval_loader, args):
-    writer = SummaryWriter("./logs_train")
-    logfile = open(
-        args.output + "/" + args.name +
-        '/log_run.txt',
-        'w+'
-    )
-    logfile.write(str(args))
+    if args.log:
+        writer = SummaryWriter("./logs_train")
+        logfile = open(
+            args.output + "/" + args.name +
+            '/log_run.txt',
+            'w+'
+        )
+        logfile.write(str(args))
 
     best_eval_accuracy = 0
     early_stop = 0
@@ -31,6 +32,8 @@ def train(net, train_loader, eval_loader, args):
     # train for each epoch
     for epoch in range(0, args.max_epoch):
         loss_sum = 0
+        train_accuracy = 0
+        all_num = 0
         time_start = time.time()
         for step, (idx, X, ans) in enumerate(train_loader):
             optim.zero_grad()
@@ -41,7 +44,8 @@ def train(net, train_loader, eval_loader, args):
             evidence, evidence_all, loss = net(X, ans, step)
             # loss = loss_fn(pred, ans)
             loss.backward()
-
+            train_accuracy += eval(args.pred_func)(evidence_all, ans)
+            all_num += ans.size(0)
             loss_sum += loss.item()
 
             print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m ""remaining" % (
@@ -60,65 +64,67 @@ def train(net, train_loader, eval_loader, args):
 
             optim.step()
 
-        # logging for tensorBoard
-        writer.add_scalar("train_loss_each_epoch", loss_sum / train_images, epoch)
+        train_accuracy = 100 * train_accuracy / all_num
+
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {:.4f}s'.format(elapse_time))
         epoch_finish = epoch + 1
-
-        # Logging
-        logfile.write(
-            'Epoch: ' + str(epoch_finish) +
-            ', Loss: ' + str(loss_sum / train_images) +
-            ', Lr: ' + str([group['lr'] for group in optim.param_groups]) + '\n' +
-            'Elapsed time: ' + str(elapse_time) +
-            '\n'
-        )
+        print("Train Accuracy :" + str(train_accuracy))
         # Eval
-        if epoch_finish >= args.eval_start:
-            print('Evaluation... {}'.format(fluctuate_count))
-            accuracy = evaluate(net, eval_loader, args)
-            print('Accuracy :' + str(accuracy))
-            # logging for tensorBoard and file
-            writer.add_scalar("test_accuracy", accuracy, epoch)
+        print('Evaluation...    decay times: {}'.format(decay_count))
+        valid_accuracy = evaluate(net, eval_loader, args)
+        print('Valid Accuracy :' + str(valid_accuracy) + '\n')
+        if args.log:
+            # logging train for tensorBoard and file
+            writer.add_scalar("loss/train_each_epoch", loss_sum / train_images, epoch)
             logfile.write(
-                'Evaluation Accuracy: ' + str(accuracy) +
+                'Epoch: ' + str(epoch_finish) +
+                ', Loss: ' + str(loss_sum / train_images) +
+                ', Lr: ' + str([group['lr'] for group in optim.param_groups]) + '\n' +
+                'Elapsed time: ' + str(elapse_time) +
+                '\n'
+            )
+            # logging valid for tensorBoard and file
+            writer.add_scalars("accuracy", {"train": train_accuracy, "valid": valid_accuracy}, epoch)
+            logfile.write(
+                'Evaluation Accuracy: ' + str(valid_accuracy) +
                 '\n\n'
             )
 
-            eval_accuracies.append(accuracy)
-            if accuracy >= best_eval_accuracy:
-                fluctuate_count = 0
-                # Best
-                state = {
-                    'state_dict': net.state_dict(),
-                    'optimizer': optim.state_dict(),
-                    'args': args,
-                }
-                torch.save(
-                    state,
-                    args.output + "/" + args.name +
-                    '/best' + str(args.seed) + str(args.dataset) + '.pkl'
-                )
-                best_eval_accuracy = accuracy
-                early_stop = 0
-            elif fluctuate_count < 30:
-                fluctuate_count += 1
-            elif decay_count < args.lr_decay_times:
-                fluctuate_count = 0
-                # Decay
-                print('LR Decay...')
-                decay_count += 1
-                net.load_state_dict(torch.load(args.output + "/" + args.name +
-                                               '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
-                # adjust_lr(optim, args.lr_decay)
-                for group in optim.param_groups:
-                    group['lr'] *= args.lr_decay
-            else:
-                # Early stop
-                early_stop += 1
-                if early_stop == args.early_stop:
+        eval_accuracies.append(valid_accuracy)
+        if valid_accuracy >= best_eval_accuracy:
+            fluctuate_count = 0
+            # Best
+            state = {
+                'state_dict': net.state_dict(),
+                'optimizer': optim.state_dict(),
+                'args': args,
+            }
+            torch.save(
+                state,
+                args.output + "/" + args.name +
+                '/best' + str(args.seed) + str(args.dataset) + '.pkl'
+            )
+            best_eval_accuracy = valid_accuracy
+            early_stop = 0
+        elif fluctuate_count < 50:
+            fluctuate_count += 1
+        elif decay_count < args.lr_decay_times:
+            fluctuate_count = 0
+            # Decay
+            print('LR Decay...')
+            decay_count += 1
+            net.load_state_dict(torch.load(args.output + "/" + args.name +
+                                           '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
+            # adjust_lr(optim, args.lr_decay)
+            for group in optim.param_groups:
+                group['lr'] *= args.lr_decay
+        else:
+            # Early stop
+            early_stop += 1
+            if early_stop == args.early_stop:
+                if args.log:
                     logfile.write('Early stop reached' + '\n')
                     print('Early stop reached')
                     logfile.write('best_overall_acc :' + str(best_eval_accuracy) + '\n\n')
@@ -128,14 +134,18 @@ def train(net, train_loader, eval_loader, args):
                               args.output + "/" + args.name +
                               '/best' + str(best_eval_accuracy) + "_" + str(args.seed) + str(args.dataset) + '.pkl')
                     logfile.close()
-                    return eval_accuracies
-    writer.close()
+                    writer.close()
+                return eval_accuracies
+
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))
-    logfile.write(
-        '-----------------------------------------------------\n'
-        'Best evaluate accuracy:' + str(best_eval_accuracy)
-    )
+    if args.log:
+        logfile.write(
+            '-----------------------------------------------------\n'
+            'Best evaluate accuracy:' + str(best_eval_accuracy)
+        )
+        writer.close()
+        logfile.close()
 
 
 def evaluate(net, eval_loader, args):
