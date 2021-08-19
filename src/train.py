@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.pred_func import *
 
 
-def train(net, train_loader, eval_loader, args):
+def train(net, loss_fn, train_loader, eval_loader, args):
     if args.log:
         writer = SummaryWriter("./logs_train")
         logfile = open(
@@ -23,10 +23,6 @@ def train(net, train_loader, eval_loader, args):
     fluctuate_count = 0
     # Load the optimizer paramters
     optim = torch.optim.Adam(net.parameters(), lr = args.lr_base, weight_decay = 1e-5)
-    # Load the loss function
-    # loss_fn = args.loss_fn
-    # if torch.cuda.is_available():
-    #     loss_fn = loss_fn.cuda()
     eval_accuracies = []
     train_images = len(train_loader.dataset) / args.batch_size
     # train for each epoch
@@ -37,13 +33,13 @@ def train(net, train_loader, eval_loader, args):
         time_start = time.time()
         for step, (idx, X, ans) in enumerate(train_loader):
             optim.zero_grad()
-            for i in range(len(X)):
+            for i in range(args.views):
                 X[i] = X[i].to(args.device)
             ans = ans.to(args.device)
-            evidence, evidence_all, loss = net(X, ans, step)
-            # loss = loss_fn(pred, ans)
+            evidence = net(X)
+            loss = loss_fn(evidence, ans, epoch)
             loss.backward()
-            train_accuracy += eval(args.pred_func)(evidence_all, ans)
+            train_accuracy += eval(args.pred_func)(evidence[args.views], ans)
             all_num += ans.size(0)
             loss_sum += loss.item()
 
@@ -108,7 +104,7 @@ def train(net, train_loader, eval_loader, args):
                 )
             best_eval_accuracy = valid_accuracy
             early_stop = 0
-        elif fluctuate_count < 50:
+        elif fluctuate_count < 20:
             fluctuate_count += 1
         elif decay_count < args.lr_decay_times:
             fluctuate_count = 0
@@ -160,11 +156,11 @@ def evaluate(net, eval_loader, args):
     all_num = 0
     with torch.no_grad():
         for step, (ids, x, ans) in enumerate(eval_loader):
-            for i in range(len(x)):
+            for i in range(args.views):
                 x[i] = x[i].to(args.device)
             ans = ans.to(args.device)
-            evidences, evidence_all, loss = net(x, ans, step)
-            accuracy += eval(args.pred_func)(evidence_all, ans)
+            evidence = net(x)
+            accuracy += eval(args.pred_func)(evidence[args.views], ans)
             all_num += ans.size(0)
         accuracy = accuracy / all_num
     net.train(True)  # ==net.train()，恢复训练模式

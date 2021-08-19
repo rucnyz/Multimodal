@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 from train import train
 from utils.compute_args import compute_args
+from utils.loss_func import AdjustedCrossEntropyLoss
 from predict_model.model_TMC import TMC
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
@@ -65,6 +66,9 @@ if __name__ == '__main__':
     # Net
     net = eval(args.model)(args)
     net.to(args.device)
+    # loss function
+    loss_fn = eval(args.loss_fn)(args)
+    loss_fn.to(args.device)
     print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e3) + "k")
 
     # Create Checkpoint dir
@@ -72,4 +76,4 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(args.output, args.name))
 
     # Run training
-    eval_accuracies = train(net, train_loader, eval_loader, args)
+    eval_accuracies = train(net, loss_fn, train_loader, eval_loader, args)

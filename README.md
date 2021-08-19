@@ -31,7 +31,7 @@ pyenv global 3.x(上一步中列出的3版本的那一个)
 ### Dataset
 
 Dataset can be obtained [here](https://drive.google.com/drive/folders/1CXH_KYHDmwo0DHUZNaxWSGxWNfXdUNpB?usp=sharing).
-put them in folder `data/` 
+put them in folder `data/`
 
 ### Related Data
 
@@ -56,7 +56,7 @@ python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 
 You can adjust some hyperparameters in the following ways(e.g. modify the missing rate)
 
 ```
-python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 0.0003 --dataset UCI --missing_rate 0.2
+python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 0.0003 --dataset Caltech101_20 --num_worker 0 --missing_rate 0.5
 ```
 
 Checkpoints are created in folder `ckpt/mymodel`

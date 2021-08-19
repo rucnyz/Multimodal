@@ -1,5 +1,7 @@
 import torch
 
+from utils.loss_func import AdjustedCrossEntropyLoss
+
 
 def compute_args(args):
     # DataLoader
@@ -18,10 +20,10 @@ def compute_args(args):
     else:
         args.device = torch.device("cpu")
     # Loss function to use
-    # if args.dataset == 'MOSEI' and args.task == 'sentiment':
-    #     args.loss_fn = torch.nn.CrossEntropyLoss(reduction = "sum")
-    # if args.dataset == 'MOSEI' and args.task == 'emotion':
-    #     args.loss_fn = torch.nn.BCEWithLogitsLoss(reduction = "sum")
-    # if args.dataset == 'MELD':
-    #     args.loss_fn = torch.nn.CrossEntropyLoss(reduction = "sum")
+    if args.dataset == "Caltech101_7" or args.dataset == "Caltech101_20" \
+            or args.dataset == "Reuters" or args.dataset == "NUSWIDEOBJ" \
+            or args.dataset == "UCI":
+        args.loss_fn = "AdjustedCrossEntropyLoss"
+        args.lambda_epochs = 50
+
     return args

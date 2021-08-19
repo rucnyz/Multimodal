@@ -39,7 +39,6 @@ class TMC(nn.Module):
         classifier_dims = args.classifier_dims
         self.views = args.views
         self.classes = args.classes
-        self.lambda_epochs = 50
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
 
     def DS_Combin(self, alpha):
@@ -95,25 +94,20 @@ class TMC(nn.Module):
                 alpha_all = DS_Combin_two(alpha_all, alpha[v + 1])
         return alpha_all
 
-    def forward(self, X, y, global_step):
+    def forward(self, X):
         # step one
         evidence = self.infer(X)
         # evidence:每个模态的预测结果
-        loss = 0
         alpha = dict()
-        for v_num in range(len(X)):
+        for v_num in range(self.views):
             # step two
             alpha[v_num] = evidence[v_num] + 1
-            # step three
-            loss += ce_loss(y, alpha[v_num], self.classes, global_step, self.lambda_epochs)
-
-        # step four
+        # step three
         alpha_all = self.DS_Combin(alpha)
         evidence_all = alpha_all - 1
+        evidence[self.views] = evidence_all
         # evidence_all:最终的预测结果
-        loss += ce_loss(y, alpha_all, self.classes, global_step, self.lambda_epochs)
-        loss = torch.mean(loss)
-        return evidence, evidence_all, loss
+        return evidence
 
     def infer(self, input_x):
         """

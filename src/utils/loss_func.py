@@ -6,6 +6,7 @@
 # loss function
 import torch
 import torch.nn.functional as F
+from torch import nn
 
 
 def KL(alpha, c):
@@ -47,3 +48,18 @@ def mse_loss(p, alpha, c, global_step, annealing_step = 1):
     alp = E * (1 - label) + 1
     C = annealing_coef * KL(alp, c)
     return (A + B) + C
+
+
+class AdjustedCrossEntropyLoss(nn.Module):
+    def __init__(self, args):
+        super(AdjustedCrossEntropyLoss, self).__init__()
+        self.lambda_epochs = args.lambda_epochs
+        self.views = args.views
+        self.classes = args.classes
+
+    def forward(self, predicted, y, global_step):
+        loss = 0
+        for v_num in range(self.views + 1):
+            loss += ce_loss(y, predicted[v_num], self.classes, global_step, self.lambda_epochs)
+        loss = torch.mean(loss)
+        return loss
