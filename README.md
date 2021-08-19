@@ -1,10 +1,10 @@
-#### Model
+### Model
 
-The TMC is the module used for the several multiview dataset 
+The TMC is the module used for several multiview dataset
 
-#### Environement
+### Environement
 
-Create a 3.8.10 python environement with:
+- Create a 3.8.10 python environement with:
 
 ```
 sklearn            0.24.2
@@ -15,7 +15,8 @@ tensorboard        2.5.0
 numpy              1.20.2                 
 ```
 
-Change the default version of python in macOS
+- Change the default version of python in macOS
+
 ```
 打开终端
 brew update
@@ -26,18 +27,25 @@ pyenv versions(如果出现command not found重新打开terminal)
 pyenv global 3.x(上一步中列出的3版本的那一个)
 (再重新打开应该就生效了)
 ```
-#### Data
+
+### Dataset
+
+Dataset can be obtained [here](https://drive.google.com/drive/folders/1CXH_KYHDmwo0DHUZNaxWSGxWNfXdUNpB?usp=sharing).
+put them in folder `data/` 
+
+### Related Data
 
 - [UCI数据集来源&简要测试](https://github.com/mvlearn/mvlearn)
 - [多模态数据集来源](https://github.com/yeqinglee/mvdata)
 
-#### Related Code：
+### Related Code：
+
 - [借鉴的代码框架](https://github.com/jbdel/MOSEI_UMONS)
 - [借鉴的多模态分类模型](https://github.com/hanmenghan/TMC)
+- [借鉴的模态缺失模型](https://github.com/hanmenghan/CPM_Nets)
 - [mimic数据预处理](https://github.com/YerevaNN/mimic3-benchmarks)
 
-
-#### Training
+### Training
 
 To train a TMC model on the UCI labels, use the following command :
 
@@ -45,10 +53,15 @@ To train a TMC model on the UCI labels, use the following command :
 python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 0.0003 --dataset UCI
 ```
 
+You can adjust some hyperparameters in the following ways(e.g. modify the missing rate)
+
+```
+python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 0.0003 --dataset UCI --missing_rate 0.2
+```
+
 Checkpoints are created in folder `ckpt/mymodel`
 
-
-#### Evaluation(unfinished)
+### Evaluation(unfinished)
 
 You can evaluate a model by typing :
 
@@ -61,7 +74,7 @@ your model on.
 
 By default, the script globs all the training checkpoints inside the folder and ensembling will be performed.
 
-#### Results:
+### Results:
 
 UCI dataset
 
@@ -74,6 +87,5 @@ UCI dataset
 |2.5%|91.0|94(497)|96.25|
 |0%|92.25|94(520)|96.25|
 
-
-#### Pre-trained checkpoints:
+### Pre-trained checkpoints:
 
