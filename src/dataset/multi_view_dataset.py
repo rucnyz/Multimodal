@@ -14,7 +14,7 @@ from utils.preprocess import *
 
 
 class Multiview_Dataset(Dataset):
-    def __init__(self, name, args):
+    def __init__(self, name, args, index = None):
         super(Multiview_Dataset, self).__init__()
         self.full_data = dict()
         assert name in ['train', 'valid', 'test']
@@ -30,29 +30,35 @@ class Multiview_Dataset(Dataset):
         full_data = np.squeeze(dataset["X"])
 
         args.classes = int(full_labels.max() + 1)
-        self.num = len(full_labels)
+        num = len(full_labels)
         classifier_dims = []
         views = len(full_data)
+        missing_index = dict()
         # 打乱数据划分数据集
         if name == "train":
+            self.missing_index = get_missing_index(views, num, args.missing_rate)
             full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
             for v in range(views):
                 classifier_dims.append([full_data[v].shape[1]])
+                missing_index[v] = self.missing_index[:int(num * 4 / 5)][:, v]
             args.views = views
             args.classifier_dims = classifier_dims
         elif name == "valid":
             full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
+            for v in range(views):
+                missing_index[v] = index[int(num * 4 / 5):][:, v]
+        elif name == "test":
+            pass
 
+        self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
         for v in range(len(full_data)):
+            # 这个数据集暂时不要用
             if args.dataset == "NUSWIDEOBJ":
                 self.full_data[v] = torch.from_numpy(full_data[v].astype(np.float32))
             else:
                 self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
-
-        self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
-        # 测试模态缺失的情况
-        # if name == "train":
-        #     self.full_data[1][:800] = 0
+            # 将缺失值设置为-1
+            self.full_data[v][missing_index[v] == 0] = -1
 
     def __getitem__(self, idx):
         data = dict()

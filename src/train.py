@@ -37,10 +37,9 @@ def train(net, train_loader, eval_loader, args):
         time_start = time.time()
         for step, (idx, X, ans) in enumerate(train_loader):
             optim.zero_grad()
-            if torch.cuda.is_available():
-                for i in range(len(X)):
-                    X[i] = X[i].cuda()
-                ans = ans.cuda()
+            for i in range(len(X)):
+                X[i] = X[i].to(args.device)
+            ans = ans.to(args.device)
             evidence, evidence_all, loss = net(X, ans, step)
             # loss = loss_fn(pred, ans)
             loss.backward()
@@ -95,17 +94,18 @@ def train(net, train_loader, eval_loader, args):
         eval_accuracies.append(valid_accuracy)
         if valid_accuracy >= best_eval_accuracy:
             fluctuate_count = 0
-            # Best
-            state = {
-                'state_dict': net.state_dict(),
-                'optimizer': optim.state_dict(),
-                'args': args,
-            }
-            torch.save(
-                state,
-                args.output + "/" + args.name +
-                '/best' + str(args.seed) + str(args.dataset) + '.pkl'
-            )
+            if args.save_net:
+                # Best
+                state = {
+                    'state_dict': net.state_dict(),
+                    'optimizer': optim.state_dict(),
+                    'args': args,
+                }
+                torch.save(
+                    state,
+                    args.output + "/" + args.name +
+                    '/best' + str(args.seed) + str(args.dataset) + '.pkl'
+                )
             best_eval_accuracy = valid_accuracy
             early_stop = 0
         elif fluctuate_count < 50:
@@ -115,8 +115,9 @@ def train(net, train_loader, eval_loader, args):
             # Decay
             print('LR Decay...')
             decay_count += 1
-            net.load_state_dict(torch.load(args.output + "/" + args.name +
-                                           '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
+            if args.save_net:
+                net.load_state_dict(torch.load(args.output + "/" + args.name +
+                                               '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
             # adjust_lr(optim, args.lr_decay)
             for group in optim.param_groups:
                 group['lr'] *= args.lr_decay
@@ -124,15 +125,20 @@ def train(net, train_loader, eval_loader, args):
             # Early stop
             early_stop += 1
             if early_stop == args.early_stop:
-                if args.log:
-                    logfile.write('Early stop reached' + '\n')
-                    print('Early stop reached')
-                    logfile.write('best_overall_acc :' + str(best_eval_accuracy) + '\n\n')
-                    print('best_eval_acc :' + str(best_eval_accuracy) + '\n\n')
+                print("---------------------------------------------")
+                print('Early stop reached')
+                print("Best evaluate accuracy:{}".format(best_eval_accuracy))
+                if args.save_net:
                     os.rename(args.output + "/" + args.name +
                               '/best' + str(args.seed) + str(args.dataset) + '.pkl',
                               args.output + "/" + args.name +
                               '/best' + str(best_eval_accuracy) + "_" + str(args.seed) + str(args.dataset) + '.pkl')
+                if args.log:
+                    logfile.write(
+                        '-----------------------------------------------------\n'
+                        'Early stop reached\n'
+                        'Best evaluate accuracy:' + str(best_eval_accuracy)
+                    )
                     logfile.close()
                     writer.close()
                 return eval_accuracies
@@ -154,10 +160,9 @@ def evaluate(net, eval_loader, args):
     all_num = 0
     with torch.no_grad():
         for step, (ids, x, ans) in enumerate(eval_loader):
-            if torch.cuda.is_available():
-                for i in range(len(x)):
-                    x[i] = x[i].cuda()
-                ans = ans.cuda()
+            for i in range(len(x)):
+                x[i] = x[i].to(args.device)
+            ans = ans.to(args.device)
             evidences, evidence_all, loss = net(x, ans, step)
             accuracy += eval(args.pred_func)(evidence_all, ans)
             all_num += ans.size(0)

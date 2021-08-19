@@ -1,14 +1,17 @@
-import argparse, os, glob, warnings, torch
+import argparse
+import glob
+import os
+import warnings
+
 from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader
 
 from train import evaluate
-from utils.pred_func import *
 from utils.compute_args import compute_args
-from predict_model.model_LA import Model_LA
-from predict_model.model_LAV import Model_LAV
-from dataset.mosei_dataset import Mosei_Dataset
-from dataset.meld_dataset import Meld_Dataset
+from utils.pred_func import *
+from predict_model.model_TMC import TMC
+from dataset.UCI_dataset import UCI_Dataset
+from dataset.multi_view_dataset import Multiview_Dataset
 
 warnings.filterwarnings("ignore")
 
@@ -18,9 +21,8 @@ def parse_args():
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--sets', nargs = '+', default = ["valid", "test"])
-
+    parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--index', type = int, default = 99)
-    parser.add_argument('--private_set', type = str, default = None)
 
     args = parser.parse_args()
     return args
@@ -30,7 +32,6 @@ if __name__ == '__main__':
     args = parse_args()
 
     # Save vars
-    private_set = args.private_set
     index = args.index
     sets = args.sets
 
@@ -42,19 +43,17 @@ if __name__ == '__main__':
     args = compute_args(args)
 
     # Define the splits to be evaluated
-    evaluation_sets = list(sets) + ([private_set] if private_set is not None else [])
+    evaluation_sets = list(sets)
     print("Evaluated sets: ", str(evaluation_sets))
     # Creating dataloader
 
-    # train_dset只是用于提取token_to_ix、vocab_size、pretrained_emb
-    train_dset = eval(args.dataloader)('train', args)
-    loaders = {set: DataLoader(eval(args.dataloader)(set, args, train_dset.token_to_ix),
+    loaders = {set: DataLoader(eval(args.dataloader)(set, args),
                                args.batch_size,
-                               num_workers = 8,
+                               num_workers = args.num_workers,
                                pin_memory = True) for set in evaluation_sets}
 
     # Creating net
-    net = eval(args.model)(args, train_dset.vocab_size, train_dset.pretrained_emb)
+    net = eval(args.model)(args)
     if torch.cuda.is_available():
         net = net.cuda()
     # Ensembling sets
@@ -87,10 +86,9 @@ if __name__ == '__main__':
             # for all id, get averaged probabilities
             avg_preds = np.array([np.mean(np.array(ensemble_preds[set][id]), axis = 0) for id in ids])
             # Compute accuracies
-            if set != private_set:
-                accuracy = np.mean(eval(args.pred_func)(avg_preds) == ans) * 100
-                print("New " + set + " ens. Accuracy :", accuracy)
-                ensemble_accuracies[set].append(accuracy)
+            accuracy = np.mean(eval(args.pred_func)(avg_preds) == ans) * 100
+            print("New " + set + " ens. Accuracy :", accuracy)
+            ensemble_accuracies[set].append(accuracy)
 
             if i + 1 == index:
                 print(classification_report(ans, eval(args.pred_func)(avg_preds)))

@@ -1,4 +1,6 @@
-import argparse, os, random
+import argparse
+import os
+import random
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
@@ -19,23 +21,25 @@ def parse_args():
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--batch_size', type = int, default = 64)
+    parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--max_epoch', type = int, default = 700)
     parser.add_argument('--opt', type = str, default = "Adam")
     parser.add_argument('--opt_params', type = str, default = "{'betas': '(0.9, 0.98)', 'eps': '1e-9'}")
     parser.add_argument('--lr_base', type = float, default = 0.0005)
     parser.add_argument('--lr_decay', type = float, default = 0.5)
     parser.add_argument('--lr_decay_times', type = int, default = 2)
-    parser.add_argument('--warmup_epoch', type = float, default = 0)
     parser.add_argument('--grad_norm_clip', type = float, default = -1)
-    parser.add_argument('--eval_start', type = int, default = 0)
     parser.add_argument('--early_stop', type = int, default = 3)
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
-    # Dataset and task
+    # Dataset
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI'],
                         default = 'UCI')
-    parser.add_argument('--num_worker', type = int, default = 0)
+    parser.add_argument('--missing_rate', type = float, default = 0,
+                        help = 'view missing rate [default: 0]')
+    # record
     parser.add_argument('--log', type = bool, default = False)
+    parser.add_argument('--save_net', type = bool, default = False)
     args = parser.parse_args()
     return args
 
@@ -46,7 +50,6 @@ if __name__ == '__main__':
         os.chdir("../")
     # Base on args given, compute new args
     args = compute_args(parse_args())
-
     # Seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -55,14 +58,13 @@ if __name__ == '__main__':
 
     # DataLoader
     train_dset = eval(args.dataloader)('train', args)
-    eval_dset = eval(args.dataloader)('valid', args)
-    train_loader = DataLoader(train_dset, args.batch_size, num_workers = args.num_worker, shuffle = True,
+    eval_dset = eval(args.dataloader)('valid', args, train_dset.missing_index)
+    train_loader = DataLoader(train_dset, args.batch_size, num_workers = args.num_workers, shuffle = True,
                               pin_memory = True)
-    eval_loader = DataLoader(eval_dset, args.batch_size, num_workers = args.num_worker, pin_memory = True)
+    eval_loader = DataLoader(eval_dset, args.batch_size, num_workers = args.num_workers, pin_memory = True)
     # Net
     net = eval(args.model)(args)
-    if torch.cuda.is_available():
-        net = net.cuda()
+    net.to(args.device)
     print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e3) + "k")
 
     # Create Checkpoint dir

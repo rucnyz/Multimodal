@@ -48,7 +48,7 @@ python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 
 Checkpoints are created in folder `ckpt/mymodel`
 
 
-#### Evaluation
+#### Evaluation(unfinished)
 
 You can evaluate a model by typing :
 
