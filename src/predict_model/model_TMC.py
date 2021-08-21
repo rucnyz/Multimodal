@@ -3,7 +3,6 @@
 # @Author  : nieyuzhou
 # @File    : model_TMC.py
 # @Software: PyCharm
-import torch.nn as nn
 
 from utils.loss_func import *
 

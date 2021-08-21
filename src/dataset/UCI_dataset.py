@@ -3,7 +3,6 @@
 # @Author  : nieyuzhou
 # @File    : UCI_dataset.py
 # @Software: PyCharm
-import torch
 from mvlearn.datasets import load_UCImultifeature
 from torch.utils.data import Dataset
 
@@ -11,33 +10,28 @@ from utils.preprocess import *
 
 
 class UCI_Dataset(Dataset):
-    # 把dataroot改成mimic的目录
-    def __init__(self, name, args, index = None):
+    def __init__(self, name, args):
         super(UCI_Dataset, self).__init__()
-        self.full_data = dict()
         assert name in ['train', 'valid', 'test']
+
+        self.full_data = dict()
         self.name = name
-        self.args = args
         full_data, full_labels = load_UCImultifeature()
-        args.classes = int(full_labels.max() + 1)
-        num = len(full_labels)
-        classifier_dims = []
-        views = len(full_data)
-        missing_index = dict()
+
         if name == "train":
-            self.missing_index = get_missing_index(views, num, args.missing_rate)
-            for v in range(views):
-                full_data[v] = full_data[v][:int(num * 4 / 5)]
-                classifier_dims.append([full_data[v].shape[1]])
-                missing_index[v] = self.missing_index[:int(num * 4 / 5)][:, v]
-            full_labels = full_labels[:int(num * 4 / 5)]
-            args.views = views
+            classifier_dims = []
+            args.classes = int(full_labels.max() + 1)
+            args.num = len(full_labels)
+            args.views = len(full_data)
+            for v in range(args.views):
+                full_data[v] = full_data[v][:int(args.num * 4 / 5)]
+                classifier_dims.append(full_data[v].shape[1])
+            full_labels = full_labels[:int(args.num * 4 / 5)]
             args.classifier_dims = classifier_dims
         elif name == "valid":
-            for v in range(views):
-                full_data[v] = full_data[v][int(num * 4 / 5):]
-                missing_index[v] = index[int(num * 4 / 5):][:, v]
-            full_labels = full_labels[int(num * 4 / 5):]
+            for v in range(args.views):
+                full_data[v] = full_data[v][int(args.num * 4 / 5):]
+            full_labels = full_labels[int(args.num * 4 / 5):]
         elif name == "test":
             pass
         # 76 Fourier coefficients of the character shapes
@@ -47,10 +41,8 @@ class UCI_Dataset(Dataset):
         # 47 Zernike moments
         # 6 morphological features
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
-        for v in range(len(full_data)):
+        for v in range(args.views):
             self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
-            # 将缺失值设置为-1
-            self.full_data[v][missing_index[v] == 0] = -1
 
     def __getitem__(self, idx):
         data = dict()
@@ -62,3 +54,11 @@ class UCI_Dataset(Dataset):
 
     def __len__(self):
         return len(self.full_labels)
+
+    def replace_missing_data(self, args, missing_index):
+        if self.name == "train":
+            for v in range(args.views):
+                self.full_data[v][missing_index[:int(args.num * 4 / 5)][:, v] == 0] = -1
+        elif self.name == "valid":
+            for v in range(args.views):
+                self.full_data[v][missing_index[int(args.num * 4 / 5):][:, v] == 0] = -1

@@ -4,13 +4,12 @@
 # @File    : multi_view_dataset.py
 # @Software: PyCharm
 import os
-import torch
-import numpy as np
-from torch.utils.data import Dataset
-import scipy.io as sio
 
-from utils.shuffle import *
+import scipy.io as sio
+from torch.utils.data import Dataset
+
 from utils.preprocess import *
+from utils.shuffle import *
 
 
 class Multiview_Dataset(Dataset):

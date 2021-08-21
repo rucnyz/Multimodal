@@ -1,7 +1,5 @@
 import torch
 
-from utils.loss_func import AdjustedCrossEntropyLoss
-
 
 def compute_args(args):
     # DataLoader
@@ -25,5 +23,11 @@ def compute_args(args):
             or args.dataset == "UCI":
         args.loss_fn = "AdjustedCrossEntropyLoss"
         args.lambda_epochs = 50
+    # 模型选择
+    if args.model == "CPM":
+        args.lsd_dim = 150
+        args.optim = "MixAdam"
+    elif args.model == "TMC":
+        args.optim = "Adam"
 
     return args

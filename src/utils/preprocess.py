@@ -3,11 +3,24 @@
 # @Author  : nieyuzhou
 # @File    : preprocess.py
 # @Software: PyCharm
+import torch
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from numpy.random import randint
 from sklearn.preprocessing import OneHotEncoder
 
+
+def missing_data_process(args, train_data, valid_data, missing_index):
+    if args.model == "TMC":
+        train_data.replace_missing_data(args, missing_index)
+        valid_data.replace_missing_data(args, missing_index)
+        args.train_batch_size = args.batch_size
+        args.valid_batch_size = args.batch_size
+    elif args.model == "CPM":
+        args.train_batch_size = int(args.num * 4 / 5)
+        args.valid_batch_size = args.num - int(args.num * 4 / 5)
+        args.batch_size = args.num
+        print("人为设定batch size弃用，现使用整个数据集作为一个batch")
 
 def normalize(x, min = 0):
     if min == 0:
@@ -49,3 +62,12 @@ def get_missing_index(view_num, alldata_len, missing_rate):
         error = abs(one_rate - ratio)
 
     return matrix
+
+
+def xavier_init(fan_in, fan_out, constant = 1):
+    low = -constant * np.sqrt(6.0 / (fan_in + fan_out))
+    high = constant * np.sqrt(6.0 / (fan_in + fan_out))
+    a = np.random.uniform(low, high, (fan_in, fan_out))
+    a = a.astype('float32')
+    a = torch.from_numpy(a)
+    return a
