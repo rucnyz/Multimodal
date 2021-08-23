@@ -13,7 +13,7 @@ from utils.shuffle import *
 
 
 class Multiview_Dataset(Dataset):
-    def __init__(self, name, args, index = None):
+    def __init__(self, name, args):
         super(Multiview_Dataset, self).__init__()
         self.full_data = dict()
         assert name in ['train', 'valid', 'test']
@@ -23,29 +23,23 @@ class Multiview_Dataset(Dataset):
         self.full_data = dict()
         # 导入数据
         root = os.getcwd()
-        dataset = sio.loadmat(root + "\\data\\" + self.dataset + ".mat")
+        dataset = sio.loadmat(root + "/data/" + self.dataset + ".mat")
         full_labels = np.squeeze(dataset["Y"])
         full_labels = full_labels - full_labels.min()
         full_data = np.squeeze(dataset["X"])
 
-        args.classes = int(full_labels.max() + 1)
-        num = len(full_labels)
-        classifier_dims = []
-        views = len(full_data)
-        missing_index = dict()
         # 打乱数据划分数据集
         if name == "train":
-            self.missing_index = get_missing_index(views, num, args.missing_rate)
+            classifier_dims = []
+            args.classes = int(full_labels.max() + 1)
+            args.num = len(full_labels)
+            args.views = len(full_data)
             full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
-            for v in range(views):
-                classifier_dims.append([full_data[v].shape[1]])
-                missing_index[v] = self.missing_index[:int(num * 4 / 5)][:, v]
-            args.views = views
+            for v in range(args.views):
+                classifier_dims.append(full_data[v].shape[1])
             args.classifier_dims = classifier_dims
         elif name == "valid":
             full_data, full_labels = shuffle(full_data, full_labels, name, args.seed)
-            for v in range(views):
-                missing_index[v] = index[int(num * 4 / 5):][:, v]
         elif name == "test":
             pass
 
@@ -56,8 +50,6 @@ class Multiview_Dataset(Dataset):
                 self.full_data[v] = torch.from_numpy(full_data[v].astype(np.float32))
             else:
                 self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
-            # 将缺失值设置为-1
-            self.full_data[v][missing_index[v] == 0] = -1
 
     def __getitem__(self, idx):
         data = dict()
@@ -69,3 +61,11 @@ class Multiview_Dataset(Dataset):
 
     def __len__(self):
         return len(self.full_labels)
+
+    def replace_missing_data(self, args, missing_index):
+        if self.name == "train":
+            for v in range(args.views):
+                self.full_data[v][missing_index[:int(args.num * 4 / 5)][:, v] == 0] = -1
+        elif self.name == "valid":
+            for v in range(args.views):
+                self.full_data[v][missing_index[int(args.num * 4 / 5):][:, v] == 0] = -1
