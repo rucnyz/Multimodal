@@ -3,10 +3,11 @@
 # @Author  : nieyuzhou
 # @File    : preprocess.py
 # @Software: PyCharm
-import torch
-from sklearn.preprocessing import MinMaxScaler
+
 import numpy as np
+import torch
 from numpy.random import randint
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 
 
@@ -21,6 +22,18 @@ def missing_data_process(args, train_data, valid_data, missing_index):
         args.valid_batch_size = args.num - int(args.num * 4 / 5)
         args.batch_size = args.num
         print("人为设定batch size弃用，现使用整个数据集作为一个batch")
+
+
+def Normalize(data):
+    """
+    :param data:Input data
+    :return:normalized data
+    """
+    m = np.mean(data)
+    mx = np.max(data)
+    mn = np.min(data)
+    return (data - m) / (mx - mn)
+
 
 def normalize(x, min = 0):
     if min == 0:

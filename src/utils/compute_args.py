@@ -25,7 +25,7 @@ def compute_args(args):
         args.lambda_epochs = 50
     # 模型选择
     if args.model == "CPM":
-        args.lsd_dim = 150
+        args.lsd_dim = 128
         args.optim = "MixAdam"
     elif args.model == "TMC":
         args.optim = "Adam"

@@ -1,9 +1,8 @@
 import argparse
-import os
 import random
 from torch.utils.data import DataLoader
 
-from train import train
+from train import *
 from utils.compute_args import compute_args
 from utils.preprocess import *
 from utils.make_optim import *
@@ -26,8 +25,8 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--batch_size', type = int, default = 64)
     parser.add_argument('--num_workers', type = int, default = 0)
-    parser.add_argument('--max_epoch', type = int, default = 100)
-    parser.add_argument('--lr_base', type = float, default = 0.0005)
+    parser.add_argument('--max_epoch', type = int, default = 500)
+    parser.add_argument('--lr_base', type = float, default = 0.0003)
     parser.add_argument('--lr_decay', type = float, default = 0.5)
     parser.add_argument('--lr_decay_times', type = int, default = 2)
     parser.add_argument('--grad_norm_clip', type = float, default = -1)
@@ -70,7 +69,7 @@ if __name__ == '__main__':
     # Preprocess data with missing views and load data
     missing_data_process(args, train_dset, eval_dset, missing_index)
     # TODO 这里对比"换缺失数据为-1"和"生成缺失数据"没有意义，因为shuffle导致了两种方法缺失情况不同，但我现在暂时不想改这玩意
-    train_loader = DataLoader(train_dset, args.train_batch_size, num_workers = args.num_workers, shuffle = True,
+    train_loader = DataLoader(train_dset, args.train_batch_size, num_workers = args.num_workers, shuffle = False,
                               pin_memory = True)
     eval_loader = DataLoader(eval_dset, args.valid_batch_size, num_workers = args.num_workers, pin_memory = True)
 
@@ -91,4 +90,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(args.output, args.name))
 
     # Run training
-    eval_accuracies = train(net, loss_fn, optim, train_loader, eval_loader,missing_index, args)
+    if args.model =="TMC":
+        train(net, loss_fn, optim, train_loader, eval_loader, args)
+    elif args.model =="CPM":
+        train2(net, optim, train_loader, eval_loader, missing_index, args)

@@ -10,11 +10,8 @@ from utils.loss_func import *
 class Classifier(nn.Module):
     def __init__(self, classifier_dims, classes):
         super(Classifier, self).__init__()
-        self.num_layers = len(classifier_dims)
         self.fc = nn.ModuleList()
-        for i in range(self.num_layers - 1):
-            self.fc.append(nn.Linear(classifier_dims[i], classifier_dims[i + 1]))
-        self.fc.append(nn.Linear(classifier_dims[self.num_layers - 1], classes, bias = False))
+        self.fc.append(nn.Linear(classifier_dims, classes, bias = False))
         self.fc.append(nn.Softplus())
 
     def forward(self, x):

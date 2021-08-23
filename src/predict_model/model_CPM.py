@@ -14,7 +14,7 @@ class CPM(nn.Module):
         super(CPM, self).__init__()
         # initialize parameter
         self.view_num = args.views
-        self.layer_size = [[300, args.classifier_dims[i]] for i in range(self.view_num)]
+        self.layer_size = [[150, args.classifier_dims[i]] for i in range(self.view_num)]
         self.lsd_dim = args.lsd_dim
         self.lamb = 1
         self.num = args.num
@@ -69,7 +69,7 @@ class CPM(nn.Module):
         # should sub 1.Avoid numerical errors; the number of samples of per label
         label_num = label_onehot.sum(0, keepdim = True)
         predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10)
-        # predicted begin from 1
+
         predicted = torch.max(predicted_full_values, dim = 1)[1]
         predicted = predicted.type(torch.IntTensor)
         predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]
@@ -79,7 +79,7 @@ class CPM(nn.Module):
         F_h_hn_mean = predicted_y_value.sum(axis = 1)
         predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
         F_h_hn_mean = F_h_hn_mean.reshape([F_h_hn_mean.shape[0], 1])
-        return (relu(theta + predicted_max_value - F_h_hn_mean)).sum(), predicted_full_values
+        return (relu(theta + predicted_max_value - F_h_hn_mean)).sum(), predicted.squeeze(1)
 
     def calculate(self, h):
         h_views = dict()
