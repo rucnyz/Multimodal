@@ -19,14 +19,14 @@ class CPM(nn.Module):
         self.lamb = 1
         self.num = args.num
         # initialize forward methods
-        self.net = [self._make_view(v) for v in range(self.view_num)]
+        self.net = nn.ModuleList(self._make_view(v) for v in range(self.view_num))
         self.lsd_train = self.lsd_init('train')
         self.lsd_valid = self.lsd_init('valid')
         self.lsd = torch.cat((self.lsd_train, self.lsd_valid), dim = 0)
 
     def forward(self, h):
         h_views = dict()
-        for v in self.view_num:
+        for v in range(self.view_num):
             h_views[v] = self.net[v](h)
         return h_views
 
@@ -53,9 +53,8 @@ class CPM(nn.Module):
             net1.add_module('drop' + str(num), torch.nn.Dropout(p = 0.1))
         return net1
 
-    def reconstruction_loss(self, lsd_train, x, sn):
+    def reconstruction_loss(self, x_pred, x, sn):
         loss = 0
-        x_pred = self.calculate(lsd_train)
         for num in range(self.view_num):
             loss = loss + (torch.pow((x_pred[num] - x[num]), 2.0) * sn[num]).sum()
         return loss
@@ -66,7 +65,7 @@ class CPM(nn.Module):
         train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,1600)
         train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # 单位矩阵
         train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素(1600,1600)
-        # should sub 1.Avoid numerical errors; the number of samples of per label
+
         label_num = label_onehot.sum(0, keepdim = True)
         predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10)
 
@@ -74,7 +73,7 @@ class CPM(nn.Module):
         predicted = predicted.type(torch.IntTensor)
         predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]
         predicted = predicted.reshape([predicted.shape[0], 1])
-        theta = torch.ne(y.reshape([y.shape[0],1]), predicted).type(torch.FloatTensor)
+        theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)
         predicted_y_value = predicted_full_values * label_onehot
         F_h_hn_mean = predicted_y_value.sum(axis = 1)
         predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])

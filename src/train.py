@@ -70,7 +70,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
                 )
             best_eval_accuracy = valid_accuracy
             early_stop = 0
-        elif fluctuate_count < 20:
+        elif fluctuate_count < 50:
             fluctuate_count += 1
         elif decay_count < args.lr_decay_times:
             fluctuate_count = 0
@@ -80,7 +80,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
             if args.save_net:
                 net.load_state_dict(torch.load(args.output + "/" + args.name +
                                                '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
-            for group in optim[1].param_groups:
+            for group in optim.param_groups:
                 group['lr'] *= args.lr_decay
         else:
             # Early stop
@@ -222,19 +222,22 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
             train_missing_index[i] = torch.from_numpy(
                 missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1))
         for i in range(5):
-            reconstruction_loss = net.reconstruction_loss(net.lsd_train[idx], X, train_missing_index)
+            x_pred = net(net.lsd_train[idx])
+            reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)
             optim[0].zero_grad()
             reconstruction_loss.backward(retain_graph = True)
             optim[0].step()
         for i in range(5):
-            loss1 = net.reconstruction_loss(net.lsd_train[idx], X, train_missing_index)
+            x_pred = net(net.lsd_train[idx])
+            loss1 = net.reconstruction_loss(x_pred, X, train_missing_index)
             loss2, _ = net.lamb * net.classification_loss(label_onehot, y, net.lsd_train[idx])
             optim[1].zero_grad()
             loss1.backward()
             loss2.backward()
             optim[1].step()
+        x_pred = net(net.lsd_train[idx])
         classification_loss, predicted = net.classification_loss(label_onehot, y, net.lsd_train[idx])
-        reconstruction_loss = net.reconstruction_loss(net.lsd_train[idx], X, train_missing_index)
+        reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
             % (epoch + 1, step + 1, math.ceil(train_images), reconstruction_loss, classification_loss,
@@ -277,11 +280,13 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
 
         # update the h
         for i in range(5):
-            reconstruction_loss = net.reconstruction_loss(net.lsd_valid, X, valid_missing_index)
+            x_pred = net(net.lsd_valid)
+            reconstruction_loss = net.reconstruction_loss(x_pred, X, valid_missing_index)
             optim[2].zero_grad()
             reconstruction_loss.backward()
             optim[2].step()
-        reconstruction_loss = net.reconstruction_loss(net.lsd_valid, X, valid_missing_index)
+        x_pred = net(net.lsd_valid)
+        reconstruction_loss = net.reconstruction_loss(x_pred, X, valid_missing_index)
         predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
         print("Reconstruction Loss = {:.4f}".format(reconstruction_loss))
         valid_accuracy += eval(args.pred_func)(predicted, y)

@@ -16,3 +16,8 @@ def MixAdam(net, lr):
     optim.append(torch.optim.Adam([net.lsd_train], lr))
     optim.append(torch.optim.Adam([net.lsd_valid], lr))
     return optim
+
+
+# return torch.optim.Adam([{"params": net.parameters(), "lr": lr},
+#                              {"params": net.lsd_train, "lr": lr},
+#                              {"params": net.lsd_valid, "lr": lr}], lr = lr)
