@@ -12,13 +12,19 @@ from predict_model.model_CPM import CPM
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 
-
-# try to commit tell me why～
-
+# python中函数参数直接传地址，不涉及形参问题，所有的args都是一样的！
 
 def parse_args():
+    # argparse 模块是 Python 内置的一个用于命令项选项与参数解析的模块，argparse 模块可以让人轻松编写用户友好的命令行接口。
+    # 通过在程序中定义好我们需要的参数，然后 argparse 将会从 sys.argv 解析出这些参数。
+    # argparse 模块还会自动生成帮助和使用手册，并在用户给程序传入无效参数时报出错误信息。
+
+    # 创建一个解析器——创建 ArgumentParser() 对象
     parser = argparse.ArgumentParser()
+
+    # 添加参数——调用 add_argument() 方法添加参数
     # Model
+    # default: 默认值，如果没有输入该变量则直接设为默认值
     parser.add_argument('--model', type = str, default = "TMC", choices = ["CPM", "Model_LAV", "TMC"])
     # Training
     parser.add_argument('--output', type = str, default = 'ckpt/')
@@ -41,6 +47,8 @@ def parse_args():
     # record
     parser.add_argument('--log', type = bool, default = False)
     parser.add_argument('--save_net', type = bool, default = False)
+
+    # 解析参数——使用 parse_args() 解析添加的参数
     return parser.parse_args()
 
 
@@ -48,18 +56,24 @@ if __name__ == '__main__':
     # change working directory to the project root
     if os.getcwd().endswith("src"):
         os.chdir("../")
+    # "./"：代表目前所在的目录
+    # " . ./"代表上一层目录
+    # "/"：代表根目录
 
     # Base on args given, compute new args
     args = compute_args(parse_args())
+    # parse_args: 刚定义，return args
+    # compute_args: utils.compute_args当中的函数, 根据数据集设置dataloader、pred_func和loss_func
 
-    # Seed
-    torch.manual_seed(args.seed)
+    # Seed 保证每次运行网络的时候相同输入的输出是固定的,保证可复现性
+    torch.manual_seed(args.seed)  # 设置CPU生成随机数的种子，方便下次复现实验结果
     np.random.seed(args.seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True  # 每次返回的卷积算法将是确定的，即默认算法
+    torch.backends.cudnn.benchmark = False  # 方便复现、提升训练速度
 
     # Dataset
-    train_dset = eval(args.dataloader)('train', args)
+    # eval: 返回传入字符串的表达式的结果
+    train_dset = eval(args.dataloader)('train', args)  # args.dataloader类的构造函数
     eval_dset = eval(args.dataloader)('valid', args)
 
     # Generate missing views
@@ -68,13 +82,23 @@ if __name__ == '__main__':
     # Preprocess data with missing views and load data
     missing_data_process(args, train_dset, eval_dset, missing_index)
     # TODO 这里对比"换缺失数据为-1"和"生成缺失数据"没有意义，因为shuffle导致了两种方法缺失情况不同，但我现在暂时不想改这玩意
+
+    # DataLoader: DataSet的打包
     train_loader = DataLoader(train_dset, args.train_batch_size, num_workers = args.num_workers, shuffle = True,
                               pin_memory = True)
     eval_loader = DataLoader(eval_dset, args.valid_batch_size, num_workers = args.num_workers, pin_memory = True)
+    # batch_size:一次运行多少个sample
+    # shuffle是打乱顺序: True两次顺序不同，False两次顺序相同，默认为false
+    # num_workers: 采用多进程进行加载，默认为0，即逐进程；>0在windows下会出现错误
+    # drop_last: 总sample除以batch_size除不尽的时候True舍弃
+    # pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them.
+    # ctrl+p可以查看参数
 
     # Net
-    net = eval(args.model)(args)
-    net.to(args.device)
+    net = eval(args.model)(args)  # choices = ["Model_LA", "Model_LAV", "TMC"]
+    net.to(args.device)  # 是否用GPU，将模型加载到相应的设备中
+    # conv: 卷积
+    # relu: 非线性处理
 
     # Loss function
     loss_fn = eval(args.loss_fn)(args)

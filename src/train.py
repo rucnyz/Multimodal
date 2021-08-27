@@ -7,14 +7,15 @@ from torch.utils.tensorboard import SummaryWriter
 import utils.loss_func
 from utils.pred_func import *
 
+# eval_accuracies = train(net, loss_fn, train_loader, eval_loader, args)
 def train(net, loss_fn, optim, train_loader, eval_loader, args):
     if args.log:
-        writer = SummaryWriter("./logs_train")
+        writer = SummaryWriter("./logs_train")  # 向log_dir文件夹写入的事件文件
         logfile = open(
             args.output + "/" + args.name +
             '/log_run.txt',
             'w+'
-        )
+        )  # args.output默认为ckpt
         logfile.write(str(args))
     best_eval_accuracy = 0
     early_stop = 0
@@ -22,6 +23,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
     fluctuate_count = 0
     eval_accuracies = []
     train_images = int(len(train_loader.dataset) / args.train_batch_size)
+
     # train for each epoch
     for epoch in range(0, args.max_epoch):
         time_start = time.time()
@@ -32,6 +34,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
         print('Finished in {:.4f}s'.format(elapse_time))
         epoch_finish = epoch + 1
         print("Train Accuracy :" + str(train_accuracy))
+
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
         valid_accuracy = evaluate(net, eval_loader, args)
@@ -54,6 +57,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
             )
 
         eval_accuracies.append(valid_accuracy)
+        # 更新best_eval_accuracy
         if valid_accuracy >= best_eval_accuracy:
             fluctuate_count = 0
             if args.save_net:
@@ -77,7 +81,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
             # Decay
             print('LR Decay...')
             decay_count += 1
-            if args.save_net:
+            if args.save_net: # 保存模型
                 net.load_state_dict(torch.load(args.output + "/" + args.name +
                                                '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])
             for group in optim.param_groups:
@@ -293,3 +297,52 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
         all_num += y.size(0)
     valid_accuracy = 100 * valid_accuracy / all_num
     return valid_accuracy
+
+# 卷积+池化+非线性激活
+
+# F.conv2d
+# reshape: (input, (batch_size不知道多少时写-1, channel, x, x))
+# weight: 权重，即卷积核
+# stride: 步数
+
+# nn.conv2d
+# groups一般都为1
+# bias偏置，常为True
+# 常设置前五个参数：in_channels out_channels kernel_size在训练中不断进行调整: int(x,x) or tuple(x,y) stride padding
+# out_channel=2时有两个卷积核
+
+# nn.maxpool2d 最大池化也称下采样 maxunpool2d上采样
+# 作用：保留输入特征的同时减少数据量 池化channel数不会改变
+# 常设置一个参数: kernel_size
+# dilation空洞卷积，一般不设置
+# ceil_mode: True: ceil（向上取整，即保留） 而不是 floor（向下取整，即舍去）
+# 池化核没有权重，选择最大的
+# stride默认为kernel_size
+# input矩阵: torch.tensor([[],[]], dtype=torch.float32)
+
+# 非线性激活
+# Relu
+# Sigmoid
+# input (N,*) output (N,*)
+# replace=True 直接修改
+
+# nn.BatchNorm2d 加快神经网络的训练速度 不常用
+# nn.RNN 文字识别 特定网络结构
+# dropout 按照p的概率随机把数据变为0
+# embedding 自然语言处理
+
+# linear 线性层
+# in_feature: 输入变量个数 input layer  out_feature: output layer
+# kx+b(bias=True)
+# (1, 1, 1, -1) torch.flatten [x]
+# input-->hidden-->output要经过两个线性层
+# torchvision
+
+
+# loss_function
+# nn.L1Loss: 绝对值之和/平均
+# nn.MSELoss: 平方和/均值
+# nn.CrossEntropyLoss(用于分类问题): input(N,C) target(N)
+
+# optimizer 优化器
+# lr(learning rate): 学习率

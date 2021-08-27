@@ -14,7 +14,7 @@ from utils.shuffle import *
 
 class Multiview_Dataset(Dataset):
     def __init__(self, name, args):
-        super(Multiview_Dataset, self).__init__()
+        super(Multiview_Dataset, self).__init__()  # super:调用父类(超类)
         self.full_data = dict()
         assert name in ['train', 'valid', 'test']
         self.name = name
@@ -23,8 +23,8 @@ class Multiview_Dataset(Dataset):
         self.full_data = dict()
         # 导入数据
         root = os.getcwd()
-        dataset = sio.loadmat(root + "/data/" + self.dataset + ".mat")
-        full_labels = np.squeeze(dataset["Y"])
+        dataset = sio.loadmat(root + "/data/" + self.dataset + ".mat")  # 读取mat文件
+        full_labels = np.squeeze(dataset["Y"])  # 从数组的形状中删除单维度条目，即把shape中为1的维度去掉
         full_labels = full_labels - full_labels.min()
         full_data = np.squeeze(dataset["X"])
 

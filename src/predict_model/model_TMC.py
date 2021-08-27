@@ -12,7 +12,7 @@ class Classifier(nn.Module):
         super(Classifier, self).__init__()
         self.fc = nn.ModuleList()
         self.fc.append(nn.Linear(classifier_dims, classes, bias = False))
-        self.fc.append(nn.Softplus())
+        self.fc.append(nn.Softplus())  # 经过Softplus算出来概率
 
     def forward(self, x):
         h = self.fc[0](x)
@@ -37,12 +37,14 @@ class TMC(nn.Module):
         self.classes = args.classes
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
 
+    # DS组合规则
     def DS_Combin(self, alpha):
         """
         :param alpha: All Dirichlet distribution parameters.
         :return: Combined Dirichlet distribution parameters.
         """
 
+        # 首先定义两个组合
         def DS_Combin_two(alpha1, alpha2):
             """
             :param alpha1: Dirichlet distribution parameters of view 1
@@ -71,9 +73,9 @@ class TMC(nn.Module):
             bb_diag = torch.diagonal(bb, dim1 = -2, dim2 = -1).sum(-1)
             C = bb_sum - bb_diag
 
-            # calculate b^a
+            # calculate b^all
             b_all = (torch.mul(b[0], b[1]) + bu + ub) / ((1 - C).view(-1, 1).expand(b[0].shape))
-            # calculate u^a
+            # calculate u^all
             u_all = torch.mul(u[0], u[1]) / ((1 - C).view(-1, 1).expand(u[0].shape))
 
             # calculate new S
@@ -83,6 +85,7 @@ class TMC(nn.Module):
             alpha_all = e_a + 1
             return alpha_all
 
+        # 拓展到多个组合
         for v in range(len(alpha) - 1):
             if v == 0:
                 alpha_all = DS_Combin_two(alpha[0], alpha[1])
@@ -90,21 +93,7 @@ class TMC(nn.Module):
                 alpha_all = DS_Combin_two(alpha_all, alpha[v + 1])
         return alpha_all
 
-    def forward(self, X):
-        # step one
-        evidence = self.infer(X)
-        # evidence:每个模态的预测结果
-        alpha = dict()
-        for v_num in range(self.views):
-            # step two
-            alpha[v_num] = evidence[v_num] + 1
-        # step three
-        alpha_all = self.DS_Combin(alpha)
-        evidence_all = alpha_all - 1
-        evidence[self.views] = evidence_all
-        # evidence_all:最终的预测结果
-        return evidence
-
+    # 得到证据evidence
     def infer(self, input_x):
         """
         :param input_x: Multi-view data
@@ -114,3 +103,18 @@ class TMC(nn.Module):
         for v_num in range(self.views):
             evidence[v_num] = self.Classifiers[v_num](input_x[v_num])
         return evidence
+
+    def forward(self, X):
+        # step one: 得到evidence: 每个模态的预测结果
+        evidence = self.infer(X)
+        alpha = dict()
+        for v_num in range(self.views):
+            # step two
+            alpha[v_num] = evidence[v_num] + 1
+        # step three
+        alpha_all = self.DS_Combin(alpha)
+        evidence_all = alpha_all - 1
+        # 在evidence字典最后加上最终的预测结果结果
+        evidence[self.views] = evidence_all
+        return evidence
+
