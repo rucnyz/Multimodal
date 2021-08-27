@@ -41,8 +41,7 @@ def parse_args():
     # record
     parser.add_argument('--log', type = bool, default = False)
     parser.add_argument('--save_net', type = bool, default = False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
@@ -90,7 +89,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(args.output, args.name))
 
     # Run training
-    if args.model =="TMC":
+    if args.model == "TMC":
         train(net, loss_fn, optim, train_loader, eval_loader, args)
-    elif args.model =="CPM":
+    elif args.model == "CPM":
         train2(net, optim, train_loader, eval_loader, missing_index, args)

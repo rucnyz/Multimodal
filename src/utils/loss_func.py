@@ -7,6 +7,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.nn.functional import relu
 
 
 def KL(alpha, c):
@@ -63,3 +64,25 @@ class AdjustedCrossEntropyLoss(nn.Module):
             loss += ce_loss(y, predicted[v_num], self.classes, global_step, self.lambda_epochs)
         loss = torch.mean(loss)
         return loss
+
+
+def classification_loss(label_onehot, y, lsd_temp):
+    # lsd_temp 隐藏层数据(1600,150)
+    # 一个聚类的思路
+    train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,1600)
+    train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # 单位矩阵
+    train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素(1600,1600)
+
+    label_num = label_onehot.sum(0, keepdim = True)
+    predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10)
+
+    predicted = torch.max(predicted_full_values, dim = 1)[1]
+    predicted = predicted.type(torch.IntTensor)
+    predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]
+    predicted = predicted.reshape([predicted.shape[0], 1])
+    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)
+    predicted_y_value = predicted_full_values * label_onehot
+    F_h_hn_mean = predicted_y_value.sum(axis = 1)
+    predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
+    F_h_hn_mean = F_h_hn_mean.reshape([F_h_hn_mean.shape[0], 1])
+    return (relu(theta + predicted_max_value - F_h_hn_mean)).sum(), predicted.squeeze(1)

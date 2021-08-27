@@ -4,8 +4,8 @@ import time
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
+import utils.loss_func
 from utils.pred_func import *
-
 
 def train(net, loss_fn, optim, train_loader, eval_loader, args):
     if args.log:
@@ -230,13 +230,13 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = net.reconstruction_loss(x_pred, X, train_missing_index)
-            loss2, _ = net.lamb * net.classification_loss(label_onehot, y, net.lsd_train[idx])
+            loss2, _ = net.lamb * utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
             optim[1].zero_grad()
             loss1.backward()
             loss2.backward()
             optim[1].step()
         x_pred = net(net.lsd_train[idx])
-        classification_loss, predicted = net.classification_loss(label_onehot, y, net.lsd_train[idx])
+        classification_loss, predicted = utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
         reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
