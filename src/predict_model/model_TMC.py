@@ -101,7 +101,7 @@ class TMC(nn.Module):
         """
         evidence = dict()
         for v_num in range(self.views):
-            evidence[v_num] = self.Classifiers[v_num](input_x[v_num])
+            evidence[v_num] = self.Classifiers[v_num](input_x[v_num])  # 每个模态预测出的概率
         return evidence
 
     def forward(self, X):

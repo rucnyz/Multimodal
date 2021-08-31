@@ -17,12 +17,12 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
             'w+'
         )  # args.output默认为ckpt
         logfile.write(str(args))
-    best_eval_accuracy = 0
+    best_eval_accuracy = 0  # 最佳验证准确率
     early_stop = 0
     decay_count = 0
     fluctuate_count = 0
-    eval_accuracies = []
-    train_images = int(len(train_loader.dataset) / args.train_batch_size)
+    eval_accuracies = []  # 记录每一次验证集的准确率
+    train_images = int(len(train_loader.dataset) / args.train_batch_size)  # 1600/64=25
 
     # train for each epoch
     for epoch in range(0, args.max_epoch):
@@ -74,9 +74,10 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
                 )
             best_eval_accuracy = valid_accuracy
             early_stop = 0
-        elif fluctuate_count < 50:
+        elif fluctuate_count < 50:  # 验证集准确率没有提高
             fluctuate_count += 1
-        elif decay_count < args.lr_decay_times:
+        elif decay_count < args.lr_decay_times:  # 经过了50次，验证集准确率还没有提高
+            # args.lr_decay_times 默认为2
             fluctuate_count = 0
             # Decay
             print('LR Decay...')
@@ -89,7 +90,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
         else:
             # Early stop
             early_stop += 1
-            if early_stop == args.early_stop:
+            if early_stop == args.early_stop:  # args.early_stop默认为3
                 print("---------------------------------------------")
                 print('Early stop reached')
                 print("Best evaluate accuracy:{}".format(best_eval_accuracy))
@@ -178,29 +179,32 @@ def train2(net, optim, train_loader, eval_loader, missing_index, args):
 def train_TMC(args, epoch, loss_fn, net, optim, train_images, train_loader, time_start):
     loss_sum = 0
     train_accuracy = 0
-    all_num = 0
+    all_num = 0  # 记录训练的sample数
     for step, (idx, X, y) in enumerate(train_loader):
         optim.zero_grad()
         for i in range(args.views):
             X[i] = X[i].to(args.device)
-        y = y.to(args.device)
-        evidence = net(X)
+        y = y.to(args.device) # class真实值
+        evidence = net(X)  # 在evidence字典最后加上最终的预测结果结果
         loss = loss_fn(evidence, y, epoch)
         # loss.backward(retain_graph = True)
         loss.backward()
-        _, predicted = torch.max(evidence[args.views].data, 1)
+        _, predicted = torch.max(evidence[args.views].data, 1)  # 返回综合所有模态得到的每个数据(这里是一个batch的所有数据，默认为64个)概率最大的类别
+        # torch.max(a,0)返回每一列中最大值的那个元素，且返回索引
+        # torch.max(a,1)返回每一行中最大值的那个元素，且返回其索引
         train_accuracy += eval(args.pred_func)(predicted, y)
-        all_num += y.size(0)
+        all_num += y.size(0)  # 即batchsize
         loss_sum += loss.item()
 
         print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m ""remaining" % (
-            epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1),
+            epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1), # 已经训练过的step的平均loss
             *[group['lr'] for group in optim.param_groups],
             ((time.time() - time_start) / (step + 1)) * (
                     (len(train_loader.dataset) / args.batch_size) - step) / 60,),
               end = '   ')
 
         # Gradient norm clipping
+        # 如果梯度超过阈值，那么就截断，将梯度变为阈值-->用于解决神经网络训练过拟合的方法
         if args.grad_norm_clip > 0:
             nn.utils.clip_grad_norm_(
                 net.parameters(),

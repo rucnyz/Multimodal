@@ -6,9 +6,9 @@
       <excludeFolder url="file://$MODULE_DIR$/data/MELD" />
       <excludeFolder url="file://$MODULE_DIR$/data/MOSEI" />
       <excludeFolder url="file://$MODULE_DIR$/ckpt" />
-      <excludeFolder url="file://$MODULE_DIR$/logs_train" />
       <excludeFolder url="file://$MODULE_DIR$/data/caltech101" />
       <excludeFolder url="file://$MODULE_DIR$/data" />
+      <excludeFolder url="file://$MODULE_DIR$/learn/logs_train" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

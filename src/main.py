@@ -81,7 +81,6 @@ if __name__ == '__main__':
 
     # Preprocess data with missing views and load data
     missing_data_process(args, train_dset, eval_dset, missing_index)
-    # TODO 这里对比"换缺失数据为-1"和"生成缺失数据"没有意义，因为shuffle导致了两种方法缺失情况不同，但我现在暂时不想改这玩意
 
     # DataLoader: DataSet的打包
     train_loader = DataLoader(train_dset, args.train_batch_size, num_workers = args.num_workers, shuffle = True,
@@ -95,7 +94,7 @@ if __name__ == '__main__':
     # ctrl+p可以查看参数
 
     # Net
-    net = eval(args.model)(args)  # choices = ["Model_LA", "Model_LAV", "TMC"]
+    net = eval(args.model)(args)  # choices = ["CPM", "Model_LAV", "TMC"]
     net.to(args.device)  # 是否用GPU，将模型加载到相应的设备中
     # conv: 卷积
     # relu: 非线性处理

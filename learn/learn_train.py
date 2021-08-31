@@ -1,10 +1,8 @@
-import torch.optim
 import torchvision.datasets
-from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from learn_model import * # learn_model与lear_train要在同一个文件夹底下
+from learn.learn_model import * # learn_model与lear_train要在同一个文件夹底下
 
 # 准备数据集
 train_data = torchvision.datasets.CIFAR10(root="../data", train=True, transform=torchvision.transforms.ToTensor(),
@@ -42,7 +40,7 @@ total_test_step = 0
 epoch = 10
 
 # 添加tensorboard
-writer = SummaryWriter("logs_train") # 不能../
+writer = SummaryWriter("../logs_train") # 不能../
 
 for i in range(epoch):
     print("-----第{}轮训练开始-----".format(i+1))

@@ -14,6 +14,7 @@ class CPM(nn.Module):
         # initialize parameter
         self.view_num = args.views
         self.layer_size = [[150, args.classifier_dims[i]] for i in range(self.view_num)]
+        # self.layer_size: [[150, 76], [150, 216], [150, 64], [150, 240], [150, 47], [150, 6]]
         self.lsd_dim = args.lsd_dim
         self.lamb = 1
         self.num = args.num
