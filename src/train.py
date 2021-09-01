@@ -216,7 +216,7 @@ def train_TMC(args, epoch, loss_fn, net, optim, train_images, train_loader, time
     return loss_sum, train_accuracy
 
 """
-此为运行CPM模型单次epoch的函数，注意batch_size已经被改成了整个数据集大小，也就是说目前不支持迭代多个batch运行模型，原因在后面
+此为运行CPM模型单次epoch的函数，注意batch_size已经被改成了整个数据集大小，也就是说目前不支持迭代多个batch运行模型，原因在model_CPM里28行
 模型核心内容：
     计算重建损失(reconstruction_loss)和分类损失(classification_loss),更新模型参数以及隐含层数据
     此模型的大部分流程不在model_CPM的forward当中(源代码用TensorFlow写成，不太好改成完全按照pytorch流程的写法，如果一定要这么改可能要在外
@@ -307,7 +307,7 @@ def evaluate(net, eval_loader, args):
     net.train(True)  # ==net.train()，恢复训练模式
     return 100 * np.array(accuracy)
 
-
+# 和前面train_CPM对应
 def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id):
     valid_accuracy = 0
     all_num = 0
@@ -317,7 +317,8 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
             valid_missing_index[i] = torch.from_numpy(
                 missing_index[int(args.num * 4 / 5):][:, i].reshape(args.valid_batch_size, 1))
 
-        # update the h
+        # 注意此处我们不再更新网络参数，只关心验证集的隐藏层数据(很好理解因为网络相当于在训练时被更新好了，现在验证时，我们需要让隐藏层和数据
+        # 集对应才能验证网络更新的咋样)
         for i in range(5):
             x_pred = net(net.lsd_valid)
             reconstruction_loss = net.reconstruction_loss(x_pred, X, valid_missing_index)

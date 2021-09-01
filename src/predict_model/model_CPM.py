@@ -25,6 +25,9 @@ class CPM(nn.Module):
         self.net = nn.ModuleList(self._make_view(v) for v in range(self.view_num))
         # 初始化隐藏层，使用的方法是均匀分布的Xavier初始化，具体可参见我写的PDF以及网络资料
         # (这也是原本就有的，其实pytorch有已经实现的函数我也不知道他为什么要自己写一遍)
+        # 所以为啥batch调成了一整个训练集大小呢，因为如果多次batch的话就需要初始化多个lsd_train(每个都得单独训练因为不同batch本身概率分布
+        # 也是不同的，更不用说有的非整数训练集最后一个batch大小还和前面不一样，而且这样分成多个矩阵运算也会使得速度更慢，大矩阵运算相比于多个
+        # 小矩阵运算绝对会快很多很多很多，因为可以并行)
         self.lsd_train = self.lsd_init('train')
         self.lsd_valid = self.lsd_init('valid')
 
