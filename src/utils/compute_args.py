@@ -5,7 +5,7 @@ def compute_args(args):
     # DataLoader
     if args.dataset == "Caltech101_7" or args.dataset == "Caltech101_20" \
             or args.dataset == "Reuters" or args.dataset == "NUSWIDEOBJ":
-        args.dataloader = 'Multiview_Dataset' # 类的名字！直接用eval()可以避免复制代码！
+        args.dataloader = 'Multiview_Dataset'  # 类的名字！直接用eval()可以避免复制代码！
         args.pred_func = "accuracy_count"
     elif args.dataset == "MIMIC":
         args.dataloader = 'Mimic_Dataset'

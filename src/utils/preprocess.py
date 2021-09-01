@@ -63,7 +63,7 @@ def get_missing_index(view_num, alldata_len, missing_rate):
         view_preserve = enc.fit_transform(randint(0, view_num, size = (alldata_len, 1))).toarray()
         return view_preserve
     error = 1
-    if one_rate == 1: # 模态不缺失
+    if one_rate == 1:  # 模态不缺失
         # (2000,6)全是1矩阵
         matrix = randint(1, 2, size = (alldata_len, view_num))
         return matrix

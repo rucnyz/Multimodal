@@ -12,6 +12,7 @@ from predict_model.model_CPM import CPM
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 
+
 # python中函数参数直接传地址，不涉及形参问题，所有的args都是一样的！
 
 def parse_args():

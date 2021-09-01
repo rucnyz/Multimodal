@@ -28,7 +28,7 @@ class UCI_Dataset(Dataset):
             for v in range(args.views):  # 6个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]   # 取80%作为训练集
                 classifier_dims.append(full_data[v].shape[1])
-            # classifier_dims为[[76], [216], [64], [240], [47], [6]]，即每个模态的特征数
+            # classifier_dims为[76, 216, 64, 240, 47, 6]，即每个模态的特征数
             full_labels = full_labels[:int(args.num * 4 / 5)]
             args.classifier_dims = classifier_dims
         elif name == "valid":

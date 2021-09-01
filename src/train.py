@@ -82,7 +82,7 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
             # Decay
             print('LR Decay...')
             decay_count += 1
-            if args.save_net: # 保存模型
+            if args.save_net:  # 保存模型
                 # 加载当前最好的模型
                 net.load_state_dict(torch.load(args.output + "/" + args.name +
                                                '/best' + str(args.seed) + str(args.dataset) + '.pkl')['state_dict'])

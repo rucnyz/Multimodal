@@ -117,4 +117,3 @@ class TMC(nn.Module):
         # 在evidence字典最后加上最终的预测结果结果
         evidence[self.views] = evidence_all
         return evidence
-
