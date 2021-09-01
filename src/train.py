@@ -215,7 +215,27 @@ def train_TMC(args, epoch, loss_fn, net, optim, train_images, train_loader, time
     train_accuracy = 100 * train_accuracy / all_num
     return loss_sum, train_accuracy
 
-
+"""
+此为运行CPM模型单次epoch的函数，注意batch_size已经被改成了整个数据集大小，也就是说目前不支持迭代多个batch运行模型，原因在后面
+模型核心内容：
+    计算重建损失(reconstruction_loss)和分类损失(classification_loss),更新模型参数以及隐含层数据
+    此模型的大部分流程不在model_CPM的forward当中(源代码用TensorFlow写成，不太好改成完全按照pytorch流程的写法，如果一定要这么改可能要在外
+    面套一层模型，但这样能用我也就没再花时间在上面了)
+    具体流程见下方注释
+Args: 
+    missing_index:完整的缺失索引矩阵(N,V)，N为数据总量，V为模态数，在下面每次取前80%数据再按照打乱索引取得对应训练集
+    (每次取的内容是一样的，每次都算一遍没有什么特殊意义)
+Return:    
+    loss,accuracy:作为损失和准确度被记录以及输出
+    label_onehot,id:返回供evaluate使用,在evaluate的评估函数ave中需要使用训练集的label_onehot(就是使用了onehot编码的训练集标签);
+    id是训练集shuffle后的索引信息，由于训练集是被shuffle打乱过的，而在evaluate时需要使用训练集数据，故必须传进打乱后的索引信息才能保证
+    evaluate时使用的是和训练时相同的训练集数据
+    
+注意：
+    后面基本用到训练数据的地方都使用了idx，仔细理解代码后可能会觉得不需要，其实这也是历史遗留问题，开始因为代码跑起来效果奇差找不出原因，就尝试
+    做了很多修改，最后真的找到了原因，然而之前的一些修改就保留了下来而没有恢复，比如这个idx开始我以为就是以为不加它所以使模型效果变差，
+    但其实应该是没有影响，我也还没有试过删掉对比。
+"""
 def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index, time_start):
     train_accuracy = 0
     all_num = 0
@@ -223,19 +243,28 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
     reconstruction_loss = 0
     id = None
     label_onehot = None
+    # 注意这里的循环只会跑一次，因为train_batch等于训练数据集大小
+    # 其中的网络数据lsd_train以及后面会用到的lsd_valid含义可参见model_CPM类
     for step, (idx, X, y) in enumerate(train_loader):
+        # id用于回传(注意每次idx都是一样的，因为设定好了seed)
         id = idx
+        # 用训练集标签生成one_hot标签
         label_onehot = torch.zeros(args.train_batch_size, args.classes).scatter_(1, y.reshape(y.shape[0], 1), 1)
         train_missing_index = dict()
+        # 生成训练集缺失模态索引
         for i in range(args.views):
             train_missing_index[i] = torch.from_numpy(
                 missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1))
+        # 首先进行重建，也就是decoder的过程，具体见reconstruction_loss函数。optim[0]更新的是模型参数
+        #
         for i in range(5):
+            # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
             x_pred = net(net.lsd_train[idx])
             reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)
             optim[0].zero_grad()
             reconstruction_loss.backward(retain_graph = True)
             optim[0].step()
+        # 随后同时进行重建以及分类，optim[1]更新的是隐藏层lsd_train数据
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = net.reconstruction_loss(x_pred, X, train_missing_index)
@@ -244,6 +273,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
             loss1.backward()
             loss2.backward()
             optim[1].step()
+        # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
         classification_loss, predicted = utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
         reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)

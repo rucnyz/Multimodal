@@ -65,7 +65,10 @@ class AdjustedCrossEntropyLoss(nn.Module):
         loss = torch.mean(loss)
         return loss
 
-
+# 这个计算的可恶心了。。。但现在没时间写了
+# 反正意思就是把隐藏层通过一些计算，算出来预测结果，然后计算预测和真实之间的误差
+# 难点在于他不是常规的去前向传播，而是用了聚类的思路，使得相同标签的元素在特征空间上越来越近，不同标签的元素越来越远
+# 没时间写了先这样吧
 def classification_loss(label_onehot, y, lsd_temp):
     # lsd_temp 隐藏层数据(1600,150)
     # 一个聚类的思路
@@ -82,7 +85,7 @@ def classification_loss(label_onehot, y, lsd_temp):
     predicted = predicted.reshape([predicted.shape[0], 1])
     theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)
     predicted_y_value = predicted_full_values * label_onehot
-    F_h_hn_mean = predicted_y_value.sum(axis = 1)
+    predicted_y = predicted_y_value.sum(axis = 1)
     predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
-    F_h_hn_mean = F_h_hn_mean.reshape([F_h_hn_mean.shape[0], 1])
-    return (relu(theta + predicted_max_value - F_h_hn_mean)).sum(), predicted.squeeze(1)
+    predicted_y = predicted_y.reshape([predicted_y.shape[0], 1])
+    return (relu(theta + predicted_max_value - predicted_y)).sum(), predicted.squeeze(1)
