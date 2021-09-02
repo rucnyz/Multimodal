@@ -89,3 +89,12 @@ def classification_loss(label_onehot, y, lsd_temp):
     predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
     predicted_y = predicted_y.reshape([predicted_y.shape[0], 1])
     return (relu(theta + predicted_max_value - predicted_y)).sum(), predicted.squeeze(1)
+
+# 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
+# (因为在矩阵运算时缺失索引为0，乘积后这一项就0了，sum后就没算它)
+# 其实这个也可以和classfication_loss一起放到损失函数那个文件里，但忘了  #已调整
+def reconstruction_loss(view_num, x_pred, x, missing_index):
+    loss = 0
+    for num in range(view_num):
+        loss += (torch.pow((x_pred[num] - x[num]), 2.0) * missing_index[num]).sum()
+    return loss

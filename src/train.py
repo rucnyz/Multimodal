@@ -260,14 +260,14 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         for i in range(5):
             # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
             x_pred = net(net.lsd_train[idx])
-            reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)
+            reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
             optim[0].zero_grad()
             reconstruction_loss.backward(retain_graph = True)
             optim[0].step()
         # 随后同时进行重建以及分类，optim[1]更新的是隐藏层lsd_train数据
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
-            loss1 = net.reconstruction_loss(x_pred, X, train_missing_index)
+            loss1 = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
             loss2, _ = net.lamb * utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
             optim[1].zero_grad()
             loss1.backward()
@@ -276,7 +276,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
         classification_loss, predicted = utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
-        reconstruction_loss = net.reconstruction_loss(x_pred, X, train_missing_index)
+        reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
             % (epoch + 1, step + 1, math.ceil(train_images), reconstruction_loss, classification_loss,
@@ -321,12 +321,12 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
         # 集对应才能验证网络更新的咋样)
         for i in range(5):
             x_pred = net(net.lsd_valid)
-            reconstruction_loss = net.reconstruction_loss(x_pred, X, valid_missing_index)
+            reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, valid_missing_index)
             optim[2].zero_grad()
             reconstruction_loss.backward()
             optim[2].step()
         x_pred = net(net.lsd_valid)
-        reconstruction_loss = net.reconstruction_loss(x_pred, X, valid_missing_index)
+        reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, valid_missing_index)
         predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
         print("Reconstruction Loss = {:.4f}".format(reconstruction_loss))
         valid_accuracy += eval(args.pred_func)(predicted, y)

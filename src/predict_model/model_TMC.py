@@ -36,6 +36,44 @@ class TMC(nn.Module):
         self.views = args.views
         self.classes = args.classes
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
+        # ModuleList(
+        #   (0): Classifier(
+        #     (fc): ModuleList(
+        #       (0): Linear(in_features=76, out_features=10, bias=False)
+        #       (1): Softplus(beta=1, threshold=20)
+        #     )
+        #   )
+        #   (1): Classifier(
+        #     (fc): ModuleList(
+        #       (0): Linear(in_features=216, out_features=10, bias=False)
+        #       (1): Softplus(beta=1, threshold=20)
+        #     )
+        #   )
+        #   (2): Classifier(
+        #     (fc): ModuleList(
+        #       (0): Linear(in_features=64, out_features=10, bias=False)
+        #       (1): Softplus(beta=1, threshold=20)
+        #     )
+        #   )
+        #   (3): Classifier(
+        #     (fc): ModuleList(
+        #       (0): Linear(in_features=240, out_features=10, bias=False)
+        #       (1): Softplus(beta=1, threshold=20)
+        #     )
+        #   )
+        #   (4): Classifier(
+        #     (fc): ModuleList(
+        #       (0): Linear(in_features=47, out_features=10, bias=False)
+        #       (1): Softplus(beta=1, threshold=20)
+        #     )
+        #   )
+        #   (5): Classifier(
+        #     (fc): ModuleList(
+        #       (0): Linear(in_features=6, out_features=10, bias=False)
+        #       (1): Softplus(beta=1, threshold=20)
+        #     )
+        #   )
+        # )
 
     # DS组合规则
     def DS_Combin(self, alpha):
