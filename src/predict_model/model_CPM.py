@@ -86,6 +86,7 @@ class CPM(nn.Module):
         if a == 'train':
             h = xavier_init(int(self.num * 4 / 5), self.lsd_dim).requires_grad_(True)  # 参数随机初始化(均匀分布)
             # requires_grad=True 的作用是让 backward 可以追踪这个参数并且计算它的梯度
+            # self.lsd_dim控制了输入维度为128
             """
             def xavier_init(fan_in, fan_out, constant = 1):
                 low = -constant * np.sqrt(6.0 / (fan_in + fan_out))

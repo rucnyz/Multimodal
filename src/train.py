@@ -266,16 +266,22 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
             # 实际上，missing_index[:int(args.num * 4 / 5)][idx][:, i]和missing_index[idx][:, i]等价，因为idx最大为1599
 
         # 首先进行重建，也就是decoder的过程，具体见reconstruction_loss函数。optim[0]更新的是模型参数
+        # reconstruction_loss体现的是经过autoencoder后
+        # train the network to minimize reconstruction loss
         for i in range(5):
             # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
             x_pred = net(net.lsd_train[idx])  # 输出是训练数据各模态的特征数
-            # 所有不缺失数据的误差平方和
+            # 所有不缺失数据的误差平方和--> 使得经过net生成的数据与原来数据接近
             reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
             # CPM的优化器是MixAdam，有3个optim
+            # optim[0]更新模型参数
+            # optim[1]更新lsd_train数据
+            # optim[2]更新lsd_test数据
             optim[0].zero_grad()
             reconstruction_loss.backward(retain_graph = True)
             optim[0].step()
         # 随后同时进行重建以及分类，optim[1]更新的是隐藏层lsd_train数据
+        # train the latent space data to minimize reconstruction loss and classification loss
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
@@ -328,8 +334,8 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
             valid_missing_index[i] = torch.from_numpy(
                 missing_index[int(args.num * 4 / 5):][:, i].reshape(args.valid_batch_size, 1))
 
-        # 注意此处我们不再更新网络参数，只关心验证集的隐藏层数据(很好理解因为网络相当于在训练时被更新好了，现在验证时，我们需要让隐藏层和数据
-        # 集对应才能验证网络更新的咋样)
+        # 注意此处我们不再更新网络参数，只关心验证集的隐藏层数据(很好理解因为网络相当于在训练时被更新好了，
+        # 现在验证时，我们需要让隐藏层和数据集对应才能验证网络更新的咋样)
         for i in range(5):
             x_pred = net(net.lsd_valid)
             reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, valid_missing_index)

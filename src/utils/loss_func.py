@@ -65,18 +65,18 @@ class AdjustedCrossEntropyLoss(nn.Module):
         loss = torch.mean(loss)  # batch_size个sample的loss均值
         return loss
 
-# 这个计算的可恶心了。。。但现在没时间写了
-# 反正意思就是把隐藏层通过一些计算，算出来预测结果，然后计算预测和真实之间的误差
+# 把隐藏层通过一些计算，算出来预测结果，然后计算预测和真实之间的误差
 # 难点在于他不是常规的去前向传播，而是用了聚类的思路，使得相同标签的元素在特征空间上越来越近，不同标签的元素越来越远
-# 没时间写了先这样吧
 def classification_loss(label_onehot, y, lsd_temp):
-    # lsd_temp 隐藏层数据(N,lsd_dim)
+    # lsd_temp 隐藏层数据(N,lsd_dim)  # xavier_init(int(self.num * 4 / 5), self.lsd_dim).requires_grad_(True)
     # 一个聚类的思路
-    train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,1600)
-    train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # 单位矩阵
-    train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素(1600,1600)
-    # 这个(N,N)的矩阵的(i,j)位置的元素，代表着第i个样本和第j个样本的点积(第i个数据是指一个lsd_dim长度的向量)，我们记这个点积结果为 相似度
+    train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,128)*(128,1600) = (1600,1600)
+    train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # (1600,1600)单位矩阵
+    train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素
+    # 相似度：这个(N,N)的矩阵的(i,j)位置的元素，代表着第i个样本和第j个样本的点积(第i个数据是指一个lsd_dim长度的向量)，我们记这个点积结果为 相似度
     label_num = label_onehot.sum(0, keepdim = True)
+    # (1,10) 每个类别的数据量
+    # [[164., 170., 156., 158., 163., 164., 153., 157., 162., 153.]]
     # 把这个矩阵和label_onehot相乘，得到的矩阵(N,classes)，第(i,j)位置的元素，代表着第i个样本和所有属于第j类的样本的 相似度之和
     predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10)
     # 因此，找到最大的那个类，也就是找到这个样本和其中样本相似度最大的那个类，我们就可以预测该样本属于这个类
@@ -84,7 +84,7 @@ def classification_loss(label_onehot, y, lsd_temp):
     predicted = predicted.type(torch.IntTensor)
     predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]
     predicted = predicted.reshape([predicted.shape[0], 1])
-    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)
+    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)  # not equal to
     predicted_y_value = predicted_full_values * label_onehot
     predicted_y = predicted_y_value.sum(axis = 1)
     predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
