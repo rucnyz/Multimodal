@@ -256,7 +256,6 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
             train_missing_index[i] = torch.from_numpy(
                 missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1))
         # 首先进行重建，也就是decoder的过程，具体见reconstruction_loss函数。optim[0]更新的是模型参数
-        #
         for i in range(5):
             # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
             x_pred = net(net.lsd_train[idx])
