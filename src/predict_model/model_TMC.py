@@ -12,7 +12,7 @@ class Classifier(nn.Module):
         super(Classifier, self).__init__()
         self.fc = nn.ModuleList()
         self.fc.append(nn.Linear(classifier_dims, classes, bias = False))
-        self.fc.append(nn.Softplus())  # 经过Softplus算出来概率
+        self.fc.append(nn.Softplus())  # 经过Softplus算出来的是属于每个类别的概率，因此损失函数是交叉熵
 
     def forward(self, x):
         h = self.fc[0](x)

@@ -26,7 +26,7 @@ def parse_args():
     # 添加参数——调用 add_argument() 方法添加参数
     # Model
     # default: 默认值，如果没有输入该变量则直接设为默认值
-    parser.add_argument('--model', type = str, default = "TMC", choices = ["CPM", "Model_LAV", "TMC"])
+    parser.add_argument('--model', type = str, default = "CPM", choices = ["CPM", "Model_LAV", "TMC"])
     # Training
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')

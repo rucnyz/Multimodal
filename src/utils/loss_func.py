@@ -62,7 +62,7 @@ class AdjustedCrossEntropyLoss(nn.Module):
         loss = 0
         for v_num in range(self.views + 1):
             loss += ce_loss(y, predicted[v_num], self.classes, global_step, self.lambda_epochs)
-        loss = torch.mean(loss)
+        loss = torch.mean(loss)  # batch_size个sample的loss均值
         return loss
 
 # 这个计算的可恶心了。。。但现在没时间写了
@@ -92,7 +92,7 @@ def classification_loss(label_onehot, y, lsd_temp):
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
 # (因为在矩阵运算时缺失索引为0，乘积后这一项就0了，sum后就没算它)
-# 其实这个也可以和classfication_loss一起放到损失函数那个文件里，但忘了  #已调整
+# 其实这个也可以和classfication_loss一起放到损失函数那个文件里，但忘了  # 已调整
 def reconstruction_loss(view_num, x_pred, x, missing_index):
     loss = 0
     for num in range(view_num):
