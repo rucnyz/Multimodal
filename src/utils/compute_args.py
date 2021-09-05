@@ -14,7 +14,7 @@ def compute_args(args):
         args.pred_func = "accuracy_count"
     # cuda 电脑的 GPU 能否被 PyTorch 调用
     if torch.cuda.is_available():
-        args.device = torch.device("cuda")
+        args.device = torch.device("cuda:0")
     else:
         args.device = torch.device("cpu")
     # Loss function to use

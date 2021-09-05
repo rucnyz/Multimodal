@@ -35,7 +35,7 @@ def ce_loss(p, alpha, c, global_step, annealing_step):
     alp = E * (1 - label) + 1
     B = annealing_coef * KL(alp, c)
 
-    return (A + B)
+    return A + B
 
 
 def mse_loss(p, alpha, c, global_step, annealing_step = 1):
@@ -72,6 +72,8 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 一个聚类的思路
     train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,128)*(128,1600) = (1600,1600)  含负数
     train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # (1600,1600)单位矩阵
+    if torch.cuda.is_available():
+        train_E = train_E.cuda()
     train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素
     # 相似度：这个(N,N)的矩阵的(i,j)位置的元素，代表着第i个样本和第j个样本的点积(第i个数据是指一个lsd_dim长度的向量)，我们记这个点积结果为 相似度
     label_num = label_onehot.sum(0, keepdim = True)
@@ -81,10 +83,9 @@ def classification_loss(label_onehot, y, lsd_temp):
     predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10) 有正有负 越大相似度越高 类比点积
     # 因此，找到最大的那个类，也就是找到这个样本和其中样本相似度最大的那个类，我们就可以预测该样本属于这个类
     predicted = torch.max(predicted_full_values, dim = 1)[1]  # 每个sample属于的类
-    predicted = predicted.type(torch.IntTensor)
     predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]  # 每个sample预测的属于的类的相似度（最大）
-    predicted = predicted.reshape([predicted.shape[0], 1])  # (1600,1)
-    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)  # not equal to 每个样本是否被正确预测 (1600,1)
+    predicted = predicted.reshape([predicted.shape[0], 1]  # (1600,1)
+    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted)  # not equal to 每个样本是否被正确预测 (1600,1)
     predicted_y_value = predicted_full_values * label_onehot  # (1600,10)*(1600,10)=(1600,10)每个元素对应相乘，不是矩阵乘法
     predicted_y = predicted_y_value.sum(axis = 1)  # 每个sample真实的属于的类的相似度
     predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
@@ -98,6 +99,7 @@ def classification_loss(label_onehot, y, lsd_temp):
     # relu在这里没什么意义，因为所有值都肯定大于等于0
     # theta + predicted_max_value和predicted_y有梯度，theta是逻辑判断无法计算梯度，因此有无theta对梯度计算没有影响
     return (relu(theta + predicted_max_value - predicted_y)).sum(), predicted.squeeze(1)  # (1600,1)-->(1,1600)
+
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
 # (因为在矩阵运算时缺失索引为0，乘积后这一项就0了，sum后就没算它)

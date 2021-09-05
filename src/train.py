@@ -198,7 +198,7 @@ def train_TMC(args, epoch, loss_fn, net, optim, train_images, train_loader, time
         loss_sum += loss.item()
 
         print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m ""remaining" % (
-            epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1), # 训练过step+1次，计算平均loss
+            epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1),  # 训练过step+1次，计算平均loss
             *[group['lr'] for group in optim.param_groups],
             ((time.time() - time_start) / (step + 1)) * (
                     (len(train_loader.dataset) / args.batch_size) - step) / 60,),
@@ -248,9 +248,13 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
     for step, (idx, X, y) in enumerate(train_loader):
         # id用于回传(注意每次idx都是一样的，因为设定好了seed)
         # y: 所有数据的类别标签
+        for i in range(args.views):
+            X[i] = X[i].to(args.device)
+        y = y.to(args.device)
         id = idx
         # 用训练集标签生成one_hot标签（即每个数据标签变成(1,10)向量，属于那个类别该类别为1，其他为0）
-        label_onehot = torch.zeros(args.train_batch_size, args.classes).scatter_(1, y.reshape(y.shape[0], 1), 1)  # (1600,10)
+        label_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
+            y.shape[0], 1), 1)
         # y = y.scatter(dim,index,src)
         # 则结果为：
         # y[ index[i][j][k] ] [j][k] = src[i][j][k] # if dim == 0
@@ -260,7 +264,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         # 生成训练集缺失模态索引
         for i in range(args.views):
             train_missing_index[i] = torch.from_numpy(
-                missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1))
+                missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1)).to(args.device)
             # missing_index[:int(args.num * 4 / 5)]是训练集的缺失模态索引
             # missing_index[int(args.num * 4 / 5)：]是验证集的缺失模态索引
             # 实际上，missing_index[:int(args.num * 4 / 5)][idx][:, i]和missing_index[idx][:, i]等价，因为idx最大为1599
@@ -329,10 +333,13 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
     valid_accuracy = 0
     all_num = 0
     for step, (idx, X, y) in enumerate(valid_loader):
+        for i in range(args.views):
+            X[i] = X[i].to(args.device)
+        y = y.to(args.device)
         valid_missing_index = dict()
         for i in range(args.views):
             valid_missing_index[i] = torch.from_numpy(
-                missing_index[int(args.num * 4 / 5):][:, i].reshape(args.valid_batch_size, 1))
+                missing_index[int(args.num * 4 / 5):][:, i].reshape(args.valid_batch_size, 1)).to(args.device)
 
         # 注意此处我们不再更新网络参数，只关心验证集的隐藏层数据(很好理解因为网络相当于在训练时被更新好了，
         # 现在验证时，我们需要让隐藏层和数据集对应才能验证网络更新的咋样)
