@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 import utils.loss_func
 from utils.pred_func import *
 
+
 # eval_accuracies = train(net, loss_fn, train_loader, eval_loader, args)
 def train(net, loss_fn, optim, train_loader, eval_loader, args):
     if args.log:
@@ -198,7 +199,7 @@ def train_TMC(args, epoch, loss_fn, net, optim, train_images, train_loader, time
         loss_sum += loss.item()
 
         print("\r[Epoch %2d][Step %4d/%4d] Loss: %.4f, Lr: %.2e, %4d m ""remaining" % (
-            epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1), # 训练过step+1次，计算平均loss
+            epoch + 1, step + 1, math.ceil(train_images), loss_sum / (step + 1),  # 训练过step+1次，计算平均loss
             *[group['lr'] for group in optim.param_groups],
             ((time.time() - time_start) / (step + 1)) * (
                     (len(train_loader.dataset) / args.batch_size) - step) / 60,),
@@ -214,6 +215,7 @@ def train_TMC(args, epoch, loss_fn, net, optim, train_images, train_loader, time
         optim.step()
     train_accuracy = 100 * train_accuracy / all_num
     return loss_sum, train_accuracy
+
 
 """
 此为运行CPM模型单次epoch的函数，注意batch_size已经被改成了整个数据集大小，也就是说目前不支持迭代多个batch运行模型，原因在model_CPM里71行
@@ -237,6 +239,8 @@ Return:
     做了很多修改，最后真的找到了原因，然而之前的一些修改就保留了下来而没有恢复，比如这个idx开始我以为就是因为不加它所以使模型效果变差，
     但其实应该是没有影响，我也还没有试过删掉对比
 """
+
+
 def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index, time_start):
     train_accuracy = 0
     all_num = 0
@@ -323,6 +327,7 @@ def evaluate(net, eval_loader, args):
         accuracy = accuracy / all_num
     net.train(True)  # ==net.train()，恢复训练模式
     return 100 * np.array(accuracy)
+
 
 # 和前面train_CPM对应
 def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id):

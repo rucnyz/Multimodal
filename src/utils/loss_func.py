@@ -35,7 +35,7 @@ def ce_loss(p, alpha, c, global_step, annealing_step):
     alp = E * (1 - label) + 1
     B = annealing_coef * KL(alp, c)
 
-    return (A + B)
+    return A + B
 
 
 def mse_loss(p, alpha, c, global_step, annealing_step = 1):
@@ -97,6 +97,7 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 也就是梯度下降在这里有两个目标同时作为目标，可以加快速度
     # relu在这里没什么意义，因为所有值都肯定大于等于0
     return (relu(theta + predicted_max_value - predicted_y)).sum(), predicted.squeeze(1)
+
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
 # (因为在矩阵运算时缺失索引为0，乘积后这一项就0了，sum后就没算它)

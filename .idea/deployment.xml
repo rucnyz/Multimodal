@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="GPU" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="nieyuzhou@39.104.81.162:32028 password" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
-      <paths name="GPU">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/multimodal" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="nieyuzhou@39.104.81.162:32028 password">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="nieyuzhou@39.104.81.162:32028 password (1)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="nieyuzhou@39.104.81.162:32028 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/nieyuzhou/multimodal" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
