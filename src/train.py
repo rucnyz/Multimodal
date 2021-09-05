@@ -254,7 +254,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         id = idx
         # 用训练集标签生成one_hot标签（即每个数据标签变成(1,10)向量，属于那个类别该类别为1，其他为0）
         label_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
-            y.shape[0], 1), 1)
+            y.shape[0], 1), 1)  # (1600,10)
         # y = y.scatter(dim,index,src)
         # 则结果为：
         # y[ index[i][j][k] ] [j][k] = src[i][j][k] # if dim == 0
