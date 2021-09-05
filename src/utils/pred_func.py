@@ -21,7 +21,7 @@ def ave(lsd1, lsd2, label_onehot):
     :param label: label of train set
     :return: Predicted label
     """
-    matrix = torch.mm(lsd2, (lsd1.T))
+    matrix = torch.mm(lsd2, (lsd1.T))  # (400,128)*(128,1600) 验证集第i个样本和训练集第j个样本的点积（训练集的label已知）
     label_num = label_onehot.sum(0, keepdim = True)
     # should sub 1.Avoid numerical errors; the number of samples of per label
     label_onehot = label_onehot.float()

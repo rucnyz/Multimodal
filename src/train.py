@@ -250,7 +250,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         # y: 所有数据的类别标签
         id = idx
         # 用训练集标签生成one_hot标签（即每个数据标签变成(1,10)向量，属于那个类别该类别为1，其他为0）
-        label_onehot = torch.zeros(args.train_batch_size, args.classes).scatter_(1, y.reshape(y.shape[0], 1), 1)
+        label_onehot = torch.zeros(args.train_batch_size, args.classes).scatter_(1, y.reshape(y.shape[0], 1), 1)  # (1600,10)
         # y = y.scatter(dim,index,src)
         # 则结果为：
         # y[ index[i][j][k] ] [j][k] = src[i][j][k] # if dim == 0
@@ -342,9 +342,10 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
             optim[2].zero_grad()
             reconstruction_loss.backward()
             optim[2].step()
-        x_pred = net(net.lsd_valid)
+        x_pred = net(net.lsd_valid)  # (400,76)(400,216)(400,64)(400,240)(400,47)(400,6)
         reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, valid_missing_index)
         predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
+        # 在eval又不去反向传播损失，完全没必要用classification_loss这个函数, 下面的valid_accuracy直接计算是否分类正确
         print("Reconstruction Loss = {:.4f}".format(reconstruction_loss))
         valid_accuracy += eval(args.pred_func)(predicted, y)
         all_num += y.size(0)
