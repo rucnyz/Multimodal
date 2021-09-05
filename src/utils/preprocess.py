@@ -104,4 +104,6 @@ def xavier_init(fan_in, fan_out, constant = 1):
     a = np.random.uniform(low, high, (fan_in, fan_out))
     a = a.astype('float32')
     a = torch.from_numpy(a)
+    if torch.cuda.is_available():
+        a = a.cuda()
     return a

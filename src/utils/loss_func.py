@@ -72,6 +72,8 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 一个聚类的思路
     train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,128)*(128,1600) = (1600,1600)
     train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # (1600,1600)单位矩阵
+    if torch.cuda.is_available():
+        train_E = train_E.cuda()
     train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素
     # 相似度：这个(N,N)的矩阵的(i,j)位置的元素，代表着第i个样本和第j个样本的点积(第i个数据是指一个lsd_dim长度的向量)，我们记这个点积结果为 相似度
     label_num = label_onehot.sum(0, keepdim = True)
@@ -81,10 +83,9 @@ def classification_loss(label_onehot, y, lsd_temp):
     predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10)
     # 因此，找到最大的那个类，也就是找到这个样本和其中样本相似度最大的那个类，我们就可以预测该样本属于这个类
     predicted = torch.max(predicted_full_values, dim = 1)[1]
-    predicted = predicted.type(torch.IntTensor)
     predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]
     predicted = predicted.reshape([predicted.shape[0], 1])
-    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted).type(torch.FloatTensor)  # not equal to
+    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted)  # not equal to
     predicted_y_value = predicted_full_values * label_onehot
     predicted_y = predicted_y_value.sum(axis = 1)
     predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
