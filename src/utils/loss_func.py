@@ -84,7 +84,7 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 因此，找到最大的那个类，也就是找到这个样本和其中样本相似度最大的那个类，我们就可以预测该样本属于这个类
     predicted = torch.max(predicted_full_values, dim = 1)[1]  # 每个sample属于的类
     predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]  # 每个sample预测的属于的类的相似度（最大）
-    predicted = predicted.reshape([predicted.shape[0], 1]  # (1600,1)
+    predicted = predicted.reshape([predicted.shape[0], 1])  # (1600,1)
     theta = torch.ne(y.reshape([y.shape[0], 1]), predicted)  # not equal to 每个样本是否被正确预测 (1600,1)
     predicted_y_value = predicted_full_values * label_onehot  # (1600,10)*(1600,10)=(1600,10)每个元素对应相乘，不是矩阵乘法
     predicted_y = predicted_y_value.sum(axis = 1)  # 每个sample真实的属于的类的相似度
