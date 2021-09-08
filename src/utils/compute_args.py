@@ -12,6 +12,9 @@ def compute_args(args):
     elif args.dataset == "UCI":
         args.dataloader = "UCI_Dataset"
         args.pred_func = "accuracy_count"
+    elif args.dataset == "UKB":
+        args.dataloader = "UKB_Dataset"
+        args.pred_func = "accuracy_count"
     # cuda 电脑的 GPU 能否被 PyTorch 调用
     if torch.cuda.is_available():
         args.device = torch.device("cuda:0")
@@ -20,7 +23,7 @@ def compute_args(args):
     # Loss function to use
     if args.dataset == "Caltech101_7" or args.dataset == "Caltech101_20" \
             or args.dataset == "Reuters" or args.dataset == "NUSWIDEOBJ" \
-            or args.dataset == "UCI":
+            or args.dataset == "UCI" or args.dataset == "UKB":
         args.loss_fn = "AdjustedCrossEntropyLoss"
         args.lambda_epochs = 50
     # 模型选择

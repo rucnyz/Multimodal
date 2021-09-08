@@ -304,6 +304,8 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
                *[group['lr'] for group in optim[1].param_groups],
                ((time.time() - time_start) / (step + 1)) * ((len(train_loader.dataset) / args.batch_size) - step) / 60),
             end = '   ')
+        predicted = predicted.reshape(len(predicted), 1)
+        y = y.reshape(len(y), 1)
         train_accuracy += eval(args.pred_func)(predicted, y)
         all_num += y.size(0)
     train_accuracy = 100 * train_accuracy / all_num
@@ -354,6 +356,8 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
         predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
         # 在eval又不去反向传播损失，完全没必要用classification_loss这个函数, 下面的valid_accuracy直接计算是否分类正确
         print("Reconstruction Loss = {:.4f}".format(reconstruction_loss))
+        predicted = predicted.reshape(len(predicted), 1)
+        y = y.reshape(len(y), 1)
         valid_accuracy += eval(args.pred_func)(predicted, y)
         all_num += y.size(0)
     valid_accuracy = 100 * valid_accuracy / all_num

@@ -10,6 +10,7 @@ from utils.loss_func import AdjustedCrossEntropyLoss
 from predict_model.model_TMC import TMC
 from predict_model.model_CPM import CPM
 from dataset.UCI_dataset import UCI_Dataset
+from dataset.UKB_dataset import UKB_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 
 
@@ -41,8 +42,8 @@ def parse_args():
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
     # Dataset
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI'],
-                        default = 'UCI')
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
+                        default = 'UKB')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     # record
