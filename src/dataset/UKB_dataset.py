@@ -13,14 +13,14 @@ import numpy as np
 
 
 def preprocess_data():
-    dataroot = os.path.join(os.getcwd() + '\\data' + '\\ukb_data')
+    dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
 
-    data1 = pd.read_stata(dataroot + '\\【控制变量】depression_covariant.dta')
+    data1 = pd.read_stata(dataroot + '/【控制变量】depression_covariant.dta')
     data1 = data1[data1['n_eid'] > 0]
-    data2 = pd.read_stata(dataroot + '\\mdd_grs.dta')
+    data2 = pd.read_stata(dataroot + '/mdd_grs.dta')
     data2 = data2[data2['iid'] > 0]
     data2.rename(columns = {'iid': 'n_eid'}, inplace = True)
-    data3 = pd.read_stata(dataroot + '\\【结局变量】depression_outcome.dta')
+    data3 = pd.read_stata(dataroot + '/【结局变量】depression_outcome.dta')
     data_all = pd.merge(data1, data2, on = 'n_eid', how = 'inner')
     data_all = pd.merge(data_all, data3[['dep_inc', 'n_eid']], on = 'n_eid', how = 'inner')
     data_all.drop(["n_eid", "pat_x", "pat_y", "mat_x", "mat_y", "sex_x", "gender", "fid_x", "fid_y", "phenotype_x",
@@ -61,7 +61,7 @@ class UKB_Dataset(Dataset):
         super(UKB_Dataset, self).__init__()
         assert name in ['train', 'valid', 'test']  # assert:断言函数，不满足条件则直接触发异常，不必执行接下来的代码
 
-        dataroot = os.path.join(os.getcwd() + '\\data' + '\\ukb_data')
+        dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
 
         self.full_data = dict()
         self.name = name
