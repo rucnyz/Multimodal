@@ -304,8 +304,6 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
                *[group['lr'] for group in optim[1].param_groups],
                ((time.time() - time_start) / (step + 1)) * ((len(train_loader.dataset) / args.batch_size) - step) / 60),
             end = '   ')
-        predicted = predicted.reshape(len(predicted), 1)
-        y = y.reshape(len(y), 1)
         train_accuracy += eval(args.pred_func)(predicted, y)
         all_num += y.size(0)
     train_accuracy = 100 * train_accuracy / all_num
