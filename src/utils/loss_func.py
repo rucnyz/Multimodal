@@ -65,6 +65,7 @@ class AdjustedCrossEntropyLoss(nn.Module):
         loss = torch.mean(loss)  # batch_size个sample的loss均值
         return loss
 
+
 # 把隐藏层通过一些计算，算出来预测结果，然后计算预测和真实之间的误差
 # 难点在于他不是常规的去前向传播，而是用了聚类的思路，使得相同标签的元素在特征空间上越来越近，不同标签的元素越来越远
 def classification_loss(label_onehot, y, lsd_temp):

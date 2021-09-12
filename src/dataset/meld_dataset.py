@@ -5,8 +5,6 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-
-
 TRAIN_SET = ['dia0_utt0', 'dia0_utt1', 'dia0_utt2', 'dia0_utt3', 'dia0_utt4', 'dia0_utt5', 'dia0_utt6', 'dia0_utt7',
              'dia0_utt8', 'dia0_utt9', 'dia0_utt10', 'dia0_utt11', 'dia0_utt12', 'dia0_utt13', 'dia1_utt0', 'dia1_utt1',
              'dia1_utt2', 'dia1_utt3', 'dia1_utt4', 'dia1_utt5', 'dia1_utt8', 'dia2_utt0', 'dia2_utt1', 'dia2_utt2',

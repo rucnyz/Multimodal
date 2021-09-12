@@ -9,7 +9,7 @@ from utils.make_optim import *
 from utils.loss_func import AdjustedCrossEntropyLoss
 from predict_model.model_TMC import TMC
 from predict_model.model_CPM import CPM
-from dataset.UCI_dataset import UCI_Dataset
+# from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 

@@ -103,3 +103,11 @@ class UKB_Dataset(Dataset):
 
     def __len__(self):  # return the size of the dataset，即数据量
         return len(self.full_labels)
+
+    def replace_missing_data(self, args, missing_index):
+        if self.name == "train":
+            for v in range(args.views):
+                self.full_data[v][missing_index[:int(args.num * 4 / 5)][:, v] == 0] = -1
+        elif self.name == "valid":
+            for v in range(args.views):
+                self.full_data[v][missing_index[int(args.num * 4 / 5):][:, v] == 0] = -1

@@ -1,9 +1,9 @@
 #### Model
 
-The TMC is the module used for the several multiview dataset 
+The TMC is the module used for the several multiview dataset
 
 #### Environement
- 
+
 Create a 3.8.10 python environement with:
 
 ```
@@ -16,6 +16,7 @@ numpy              1.20.2
 ```
 
 Change the default version of python in macOS
+
 ```
 打开终端
 brew update
@@ -26,16 +27,17 @@ pyenv versions(如果出现command not found重新打开terminal)
 pyenv global 3.x(上一步中列出的3版本的那一个)
 (再重新打开应该就生效了)
 ```
+
 #### Data
 
 - [UCI数据集来源&简要测试](https://github.com/mvlearn/mvlearn)
 - [多模态数据集来源](https://github.com/yeqinglee/mvdata)
 
 #### Related Code：
+
 - [借鉴的代码框架](https://github.com/jbdel/MOSEI_UMONS)
 - [借鉴的多模态分类模型](https://github.com/hanmenghan/TMC)
 - [mimic数据预处理](https://github.com/YerevaNN/mimic3-benchmarks)
-
 
 #### Training
 
@@ -46,7 +48,6 @@ python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 
 ```
 
 Checkpoints are created in folder `ckpt/mymodel`
-
 
 #### Evaluation
 
@@ -73,7 +74,6 @@ UCI dataset
 |5%|89.25|93.75(477)|96.25|
 |2.5%|91.0|94(497)|96.25|
 |0%|92.25|94(520)|96.25|
-
 
 #### Pre-trained checkpoints:
 

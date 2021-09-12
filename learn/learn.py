@@ -23,5 +23,5 @@ class Demo(nn.Module):
 
 demo = Demo()
 x = torch.tensor(1.0)
-out = demo(x) # 不需要使用forward，只要在实例化一个对象中传入对应的参数就可以自动调用 forward 函数
+out = demo(x)  # 不需要使用forward，只要在实例化一个对象中传入对应的参数就可以自动调用 forward 函数
 print(out)

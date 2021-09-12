@@ -26,7 +26,7 @@ class UCI_Dataset(Dataset):
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
             for v in range(args.views):  # 6个模态
-                full_data[v] = full_data[v][:int(args.num * 4 / 5)]   # 取80%作为训练集
+                full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集
                 classifier_dims.append(full_data[v].shape[1])
             # classifier_dims为[76, 216, 64, 240, 47, 6]，即每个模态的特征数
             full_labels = full_labels[:int(args.num * 4 / 5)]
@@ -49,7 +49,7 @@ class UCI_Dataset(Dataset):
         for v in range(args.views):
             self.full_data[v] = torch.from_numpy(normalize(full_data[v]).astype(np.float32))
 
-    def __getitem__(self, idx): # fetching a data sample 第idx数据的所有模态和label
+    def __getitem__(self, idx):  # fetching a data sample 第idx数据的所有模态和label
         data = dict()
         for i in range(len(self.full_data)):
             data[i] = self.full_data[i][idx]
@@ -57,7 +57,7 @@ class UCI_Dataset(Dataset):
         # 返回所有数据
         return idx, data, target
 
-    def __len__(self): # return the size of the dataset，即数据量
+    def __len__(self):  # return the size of the dataset，即数据量
         return len(self.full_labels)
 
     def replace_missing_data(self, args, missing_index):
