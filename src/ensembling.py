@@ -6,7 +6,7 @@ import warnings
 from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader
 
-from train import evaluate
+from train import evaluate_TMC
 from utils.compute_args import compute_args
 from utils.pred_func import *
 from predict_model.model_TMC import TMC
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
         # Evaluation per checkpoint predictions
         for set in evaluation_sets:
-            accuracy, preds = evaluate(net, loaders[set], args)
+            accuracy, preds = evaluate_TMC(net, loaders[set], args)
             print('Accuracy for ' + set + ' for model ' + ckpt + ":", accuracy)
             for id, pred in preds.items():
                 if id not in ensemble_preds[set]:

@@ -16,10 +16,10 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-class D(nn.Module):
+class Discriminator(nn.Module):
     # noinspection PyTypeChecker
     def __init__(self, in_channels = 3, channels = 32):
-        super(D, self).__init__()
+        super(Discriminator, self).__init__()
         self.layer1 = nn.Sequential(
             nn.Conv2d(in_channels, channels, kernel_size = 4, stride = 2, padding = 1),
             nn.BatchNorm2d(channels),
@@ -55,31 +55,12 @@ class D(nn.Module):
         return out
 
 
-class G(nn.Module):
-    # noinspection PyTypeChecker
+class Generator(nn.Module):
     def __init__(self, feature_size = 100, in_channels = 1024, channels = 128, out_channels = 3):
-        super(G, self).__init__()
+        super(Generator, self).__init__()
         self.in_channels = in_channels
         self.linear = nn.Linear(feature_size, in_channels * 6 * 6)
-        self.layer1 = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, channels * 4, kernel_size = 4, stride = 2, padding = 1),
-            nn.BatchNorm2d(channels * 4),
-            nn.ReLU()
-        )
-        self.layer2 = nn.Sequential(
-            nn.ConvTranspose2d(channels * 4, channels * 2, kernel_size = 4, stride = 2, padding = 1),
-            nn.BatchNorm2d(channels * 2),
-            nn.ReLU()
-        )
-        self.layer3 = nn.Sequential(
-            nn.ConvTranspose2d(channels * 2, channels, kernel_size = 4, stride = 2, padding = 1),
-            nn.BatchNorm2d(channels),
-            nn.ReLU()
-        )
-        self.layer4 = nn.Sequential(
-            nn.ConvTranspose2d(channels, out_channels, kernel_size = 4, stride = 2, padding = 1),
-            nn.Tanh()
-        )
+
 
     def forward(self, x):
         out = self.linear(x)
@@ -124,9 +105,10 @@ def train(discriminator, generator, criterion, d_optim, g_optim, epochs, dataloa
 
 
 if __name__ == '__main__':
+    # 测试一下GAN
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    d = D().apply(weights_init).to(device)  # 定义鉴别器
-    g = G().apply(weights_init).to(device)  # 定义生成器
+    d = Discriminator().apply(weights_init).to(device)  # 定义鉴别器
+    g = Generator().apply(weights_init).to(device)  # 定义生成器
     loss_fn = nn.BCELoss()
     d_optimizer = torch.optim.Adam(d.parameters(), lr = 0.0003)
     g_optimizer = torch.optim.Adam(g.parameters(), lr = 0.0003)

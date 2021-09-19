@@ -8,8 +8,11 @@ import utils.loss_func
 from utils.pred_func import *
 
 
-# eval_accuracies = train(net, loss_fn, train_loader, eval_loader, args)
-def train(net, loss_fn, optim, train_loader, eval_loader, args):
+
+
+
+def train(net, optim, train_loader, eval_loader, missing_index, args):
+    bce_loss = nn.BCELoss()
     if args.log:
         writer = SummaryWriter("./logs_train")  # 向log_dir文件夹写入的事件文件
         logfile = open(
@@ -23,7 +26,98 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
     decay_count = 0
     fluctuate_count = 0
     eval_accuracies = []  # 记录每一次验证集的准确率
-    train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)  # 1600/64=25
+    train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)
+    # train for each epoch
+    for epoch in range(0, args.max_epoch):
+        # 初始化参数
+        all_num = 0
+        train_accuracy = 0
+        time_start = time.time()
+        train_missing_index = dict()
+        # 开始运行
+        for step, (idx, X, y) in enumerate(train_loader):
+            if step == 0:
+                # 生成训练集缺失模态索引
+                for i in range(args.views):
+                    train_missing_index[i] = torch.from_numpy(
+                        missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1)).to(
+                        args.device)
+            # 使用cuda或者cpu设备
+            for i in range(args.views):
+                X[i] = X[i].to(args.device)
+            y = y.to(args.device)
+            # 产生one-hot编码的标签
+            y_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
+                y.shape[0], 1), 1)
+            # 产生用于GAN的两种标签
+            y_real = torch.ones(X.size(0), device = args.device)  # 真标签
+            y_fake = torch.zeros(X.size(0), device = args.device)  # 假标签
+            # --------------------------------------
+            # 重建原数据
+            lsd_train = net.encoder(X)
+            x_pred = net.decoder(lsd_train)
+            # 计算未缺失模态的重建损失
+            rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            # 冻结decoder参数(decoder即generator)，计算discriminator损失
+            output_real = net.discriminator(X, train_missing_index)
+            output_fake = net.discriminator(x_pred.detach(), train_missing_index)
+            disc_loss_real = bce_loss(output_real, y_real)
+            disc_loss_fake = bce_loss(output_fake, y_fake)
+            disc_loss = disc_loss_real + disc_loss_fake
+            optim["decoder"].zero_grad()
+            (rec_loss + disc_loss).backward()
+            optim["decoder"].step()
+            # --------------------------------------
+            # 重建原数据
+            lsd_train = net.encoder(X)
+            x_pred = net.decoder(lsd_train)
+            # 计算未缺失模态的重建损失
+            rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            # 冻结discriminator参数，更新decoder参数
+            output_fake = net.discriminator(x_pred.detach(), train_missing_index)
+            dec_loss = bce_loss(output_fake, y_real)
+            optim["discriminator"].zero_grad()
+            (rec_loss + dec_loss).backward()
+            optim["discriminator"].step()
+            # --------------------------------------
+            # 重建原数据
+            lsd_train = net.encoder(X)
+            x_pred = net.decoder(lsd_train)
+            # 计算未缺失模态的重建损失和分类损失
+            rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            clf_loss, predicted = utils.loss_func.classification_loss(y_onehot, y, lsd_train)
+            optim["encoder"].zero_grad()
+            (rec_loss + clf_loss).backward()
+            optim["encoder"].step()
+            # ---------------------------------------
+            train_accuracy += eval(args.pred_func)(predicted, y)
+            all_num += y.size(0)
+        train_accuracy = 100 * train_accuracy / all_num
+        # 记录时间
+        time_end = time.time()
+        elapse_time = time_end - time_start
+        print('Finished in {:.4f}s'.format(elapse_time))
+        print("Train Accuracy :" + str(train_accuracy))
+        # Eval
+        print('Evaluation...    decay times: {}'.format(decay_count))
+        valid_accuracy = evaluate(net, eval_loader, args)
+        print('Valid Accuracy :' + str(valid_accuracy) + '\n')
+
+def train1(net, loss_fn, optim, train_loader, eval_loader, args):
+    if args.log:
+        writer = SummaryWriter("./logs_train")  # 向log_dir文件夹写入的事件文件
+        logfile = open(
+            args.output + "/" + args.name +
+            '/log_run.txt',
+            'w+'
+        )  # args.output默认为ckpt
+        logfile.write(str(args))
+    best_eval_accuracy = 0  # 最佳验证准确率
+    early_stop = 0
+    decay_count = 0
+    fluctuate_count = 0
+    eval_accuracies = []  # 记录每一次验证集的准确率
+    train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)
 
     # train for each epoch
     for epoch in range(0, args.max_epoch):
@@ -33,18 +127,17 @@ def train(net, loss_fn, optim, train_loader, eval_loader, args):
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {:.4f}s'.format(elapse_time))
-        epoch_finish = epoch + 1
         print("Train Accuracy :" + str(train_accuracy))
 
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy = evaluate(net, eval_loader, args)
+        valid_accuracy = evaluate_TMC(net, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
         if args.log:
             # logging train for tensorBoard and file
             writer.add_scalar("loss/train_each_epoch", loss_sum / train_images, epoch)
             logfile.write(
-                'Epoch: ' + str(epoch_finish) +
+                'Epoch: ' + str(epoch + 1) +
                 ', Loss: ' + str(loss_sum / train_images) +
                 ', Lr: ' + str([group['lr'] for group in optim.param_groups]) + '\n' +
                 'Elapsed time: ' + str(elapse_time) +
@@ -258,7 +351,8 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         id = idx
         # 用训练集标签生成one_hot标签（即每个数据标签变成(1,10)向量，属于那个类别该类别为1，其他为0）
         label_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
-            y.shape[0], 1), 1)  # (1600,10)
+            y.shape[0], 1), 1)
+        # (1600,10)
         # y = y.scatter(dim,index,src)
         # 则结果为：
         # y[ index[i][j][k] ] [j][k] = src[i][j][k] # if dim == 0
@@ -314,8 +408,12 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
 
     return classification_loss + reconstruction_loss, train_accuracy, label_onehot, id
 
-
 def evaluate(net, eval_loader, args):
+    net.train(False)
+
+
+
+def evaluate_TMC(net, eval_loader, args):
     net.train(False)  # ==net.eval(),使得dropout和BatchNorm层参数被完全冻结
     accuracy = 0
     all_num = 0
@@ -329,7 +427,7 @@ def evaluate(net, eval_loader, args):
             accuracy += eval(args.pred_func)(predicted, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num
-    net.train(True)  # ==net.train()，恢复训练模式
+    net.train1(True)  # ==net.train()，恢复训练模式
     return 100 * np.array(accuracy)
 
 
