@@ -61,7 +61,6 @@ class Generator(nn.Module):
         self.in_channels = in_channels
         self.linear = nn.Linear(feature_size, in_channels * 6 * 6)
 
-
     def forward(self, x):
         out = self.linear(x)
         out = out.view(-1, self.in_channels, 6, 6)

@@ -8,9 +8,6 @@ import utils.loss_func
 from utils.pred_func import *
 
 
-
-
-
 def train(net, optim, train_loader, eval_loader, missing_index, args):
     bce_loss = nn.BCELoss()
     if args.log:
@@ -56,32 +53,28 @@ def train(net, optim, train_loader, eval_loader, missing_index, args):
             # 重建原数据
             lsd_train = net.encoder(X)
             x_pred = net.decoder(lsd_train)
-            # 计算未缺失模态的重建损失
-            rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
             # 冻结decoder参数(decoder即generator)，计算discriminator损失
+            # 取每一个模态X中未缺失部分作为正样本1，和x_pred中X缺失部分对应的数据作为生成样本，训练discriminator
             output_real = net.discriminator(X, train_missing_index)
-            output_fake = net.discriminator(x_pred.detach(), train_missing_index)
+            output_fake = net.discriminator(x_pred, train_missing_index)
             disc_loss_real = bce_loss(output_real, y_real)
             disc_loss_fake = bce_loss(output_fake, y_fake)
             disc_loss = disc_loss_real + disc_loss_fake
-            optim["decoder"].zero_grad()
-            (rec_loss + disc_loss).backward()
-            optim["decoder"].step()
+            optim["discriminator"].zero_grad()
+            disc_loss.backward()
+            optim["discriminator"].step()
             # --------------------------------------
-            # 重建原数据
-            lsd_train = net.encoder(X)
-            x_pred = net.decoder(lsd_train)
             # 计算未缺失模态的重建损失
             rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
             # 冻结discriminator参数，更新decoder参数
+            # x_pred中X缺失部分对应的数据作为正样本
             output_fake = net.discriminator(x_pred.detach(), train_missing_index)
             dec_loss = bce_loss(output_fake, y_real)
-            optim["discriminator"].zero_grad()
+            optim["decoder"].zero_grad()
             (rec_loss + dec_loss).backward()
-            optim["discriminator"].step()
+            optim["decoder"].step()
             # --------------------------------------
             # 重建原数据
-            lsd_train = net.encoder(X)
             x_pred = net.decoder(lsd_train)
             # 计算未缺失模态的重建损失和分类损失
             rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
@@ -102,6 +95,7 @@ def train(net, optim, train_loader, eval_loader, missing_index, args):
         print('Evaluation...    decay times: {}'.format(decay_count))
         valid_accuracy = evaluate(net, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
+
 
 def train1(net, loss_fn, optim, train_loader, eval_loader, args):
     if args.log:
@@ -408,9 +402,9 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
 
     return classification_loss + reconstruction_loss, train_accuracy, label_onehot, id
 
+
 def evaluate(net, eval_loader, args):
     net.train(False)
-
 
 
 def evaluate_TMC(net, eval_loader, args):

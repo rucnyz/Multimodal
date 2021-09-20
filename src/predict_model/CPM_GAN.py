@@ -20,11 +20,8 @@ class CPM_GAN(nn.Module):
         self.num = args.num
         # 模型初始化
         self.discriminator = Discriminator()
-        self.generator = Generator()
-        self.decoder= nn.ModuleList(self._make_view(v) for v in range(self.view_num))
-        # 隐藏层初始化
-        self.lsd_train = self.lsd_init('train')
-        self.lsd_valid = self.lsd_init('valid')
+        self.decoder = Generator()
+        self.encoder = nn.ModuleList(self._make_view(v) for v in range(self.view_num))
 
     def forward(self, h):
         X_pred = dict()
