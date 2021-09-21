@@ -9,7 +9,8 @@ from utils.make_optim import *
 from utils.loss_func import AdjustedCrossEntropyLoss
 from predict_model.model_TMC import TMC
 from predict_model.model_CPM import CPM
-# from dataset.UCI_dataset import UCI_Dataset
+from predict_model.CPM_GAN import CPM_GAN
+from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 
@@ -27,7 +28,7 @@ def parse_args():
     # 添加参数——调用 add_argument() 方法添加参数
     # Model
     # default: 默认值，如果没有输入该变量则直接设为默认值
-    parser.add_argument('--model', type = str, default = "CPM", choices = ["CPM", "CPM_GAN", "TMC"])
+    parser.add_argument('--model', type = str, default = "CPM_GAN", choices = ["CPM", "CPM_GAN", "TMC"])
     # Training
     parser.add_argument('--output', type = str, default = 'ckpt/')
     parser.add_argument('--name', type = str, default = 'exp0/')
@@ -43,7 +44,7 @@ def parse_args():
     # Dataset
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
-                        default = 'UKB')
+                        default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     # record
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     # ctrl+p可以查看参数
 
     # Net
-    net = eval(args.model)(args)  # choices = ["CPM", "Model_LAV", "TMC"]
+    net = eval(args.model)(args)  # choices = ["CPM", "CPM_GAN", "TMC"]
     net.to(args.device)  # 是否用GPU，将模型加载到相应的设备中
     # conv: 卷积
     # relu: 非线性处理

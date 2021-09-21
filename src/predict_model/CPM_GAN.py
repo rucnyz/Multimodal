@@ -19,10 +19,11 @@ class CPM_GAN(nn.Module):
         self.lamb = 1
         self.num = args.num
         # 模型初始化
-        self.discriminator = Discriminator()
-        self.decoder = Generator()
+        self.discriminator = Discriminator(args)
+        self.decoder = Generator(args)
         self.encoder = nn.ModuleList(self._make_view(v) for v in range(self.view_num))
 
+    # 下面写的很奇怪，定义好encoder、decoder、discriminator之后还需要下面这个吗，或者下面这个是用来定义encoder的？
     def forward(self, h):
         X_pred = dict()
         for v in range(self.view_num):

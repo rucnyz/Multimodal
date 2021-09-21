@@ -29,5 +29,8 @@ def compute_args(args):
         args.optim = "MixAdam"
     elif args.model == "TMC":
         args.optim = "Adam"
+    elif args.model == "CPM_GAN":
+        args.lsd_dim = 128
+        args.optim = "MixAdam"
 
     return args
