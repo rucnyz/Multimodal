@@ -9,7 +9,6 @@ from utils.pred_func import *
 
 
 def train(net, optim, train_loader, eval_loader, missing_index, args):
-    bce_loss = nn.BCELoss()  # 对一个batch里面的数据做二元交叉熵并且求平均
     if args.log:
         writer = SummaryWriter("./logs_train")  # 向log_dir文件夹写入的事件文件
         logfile = open(
@@ -46,11 +45,6 @@ def train(net, optim, train_loader, eval_loader, missing_index, args):
             # 产生one-hot编码的标签
             y_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
-            # 产生用于GAN的两种标签
-            y_real = torch.ones(X.size(0), device = args.device)  # 真标签
-            # ######## X[0].size(0) ??????????
-            y_fake = torch.zeros(X.size(0), device = args.device)  # 假标签
-            # ######## x_pred[0].size(0) ??????????
             # --------------------------------------
             # 重建原数据
             lsd_train = net.encoder(X)  # （1600，128）
@@ -58,10 +52,10 @@ def train(net, optim, train_loader, eval_loader, missing_index, args):
             # 冻结decoder参数(decoder即generator)，计算discriminator损失
             # 取每一个模态X中未缺失部分作为正样本1，和x_pred中X缺失部分对应的数据作为生成样本0，训练discriminator
             # ######## 如何体现是否缺失 ????????? encoder如何生成缺失数据 ????????
-            output_real = net.discriminator('exist', X, train_missing_index)
-            output_fake = net.discriminator('miss', x_pred, train_missing_index)
-            disc_loss_real = bce_loss(output_real, y_real)
-            disc_loss_fake = bce_loss(output_fake, y_fake)
+            output_real = net.discriminator(X)
+            output_fake = net.discriminator(x_pred)
+            disc_loss_real = bce_loss('exist', output_real, train_missing_index)
+            disc_loss_fake = bce_loss('miss', output_fake, train_missing_index)
             disc_loss = disc_loss_real + disc_loss_fake
             optim["discriminator"].zero_grad()
             disc_loss.backward()
@@ -69,9 +63,9 @@ def train(net, optim, train_loader, eval_loader, missing_index, args):
             # --------------------------------------
             rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
             # 冻结discriminator参数，更新decoder参数
-            # x_pred中X缺失部分对应的数据作为正样本
-            output_fake = net.discriminator(x_pred.detach(), train_missing_index)
-            dec_loss = bce_loss(output_fake, y_real)
+            # x_pred中X【缺失】部分对应的数据作为正样本
+            output_fake = net.discriminator(x_pred.detach())
+            dec_loss = bce_loss('decoder', output_fake, train_missing_index)
             optim["decoder"].zero_grad()
             (rec_loss + dec_loss).backward()
             optim["decoder"].step()

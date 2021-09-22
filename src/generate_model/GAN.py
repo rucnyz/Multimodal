@@ -21,7 +21,7 @@ class Classifier(nn.Module):
         super(Classifier, self).__init__()
         self.fc = nn.ModuleList()
         self.fc.append(nn.Linear(classifier_dims, classes, bias = False))
-        self.fc.append(nn.Softplus())  # 经过Softplus算出来的是属于每个类别的概率，因此损失函数是交叉熵
+        self.fc.append(nn.Softmax())  # 经过Softmax算出来的是属于每个类别的概率(且各类别概率之和为1)，因此损失函数是交叉熵
 
     def forward(self, x):
         h = self.fc[0](x)
@@ -43,56 +43,52 @@ class Discriminator(nn.Module):
 
         classifier_dims = args.classifier_dims
         self.views = args.views
-        self.classes = 2  # real or fake
+        self.classes = 2  # real or fake, 第0类为real, 第1类为fake
         self.Classifiers = nn.ModuleList([Classifier(classifier_dims[i], self.classes) for i in range(self.views)])
         # ModuleList(
         #   (0): Classifier(
         #     (fc): ModuleList(
         #       (0): Linear(in_features=76, out_features=2, bias=False)
-        #       (1): Softplus(beta=1, threshold=20)
+        #       (1): Softmax(beta=1, threshold=20)
         #     )
         #   )
         #   (1): Classifier(
         #     (fc): ModuleList(
         #       (0): Linear(in_features=216, out_features=2, bias=False)
-        #       (1): Softplus(beta=1, threshold=20)
+        #       (1): Softmax(beta=1, threshold=20)
         #     )
         #   )
         #   (2): Classifier(
         #     (fc): ModuleList(
         #       (0): Linear(in_features=64, out_features=2, bias=False)
-        #       (1): Softplus(beta=1, threshold=20)
+        #       (1): Softmax(beta=1, threshold=20)
         #     )
         #   )
         #   (3): Classifier(
         #     (fc): ModuleList(
         #       (0): Linear(in_features=240, out_features=2, bias=False)
-        #       (1): Softplus(beta=1, threshold=20)
+        #       (1): Softmax(beta=1, threshold=20)
         #     )
         #   )
         #   (4): Classifier(
         #     (fc): ModuleList(
         #       (0): Linear(in_features=47, out_features=2, bias=False)
-        #       (1): Softplus(beta=1, threshold=20)
+        #       (1): Softmax(beta=1, threshold=20)
         #     )
         #   )
         #   (5): Classifier(
         #     (fc): ModuleList(
         #       (0): Linear(in_features=6, out_features=2, bias=False)
-        #       (1): Softplus(beta=1, threshold=20)
+        #       (1): Softmax(beta=1, threshold=20)
         #     )
         #   )
         # )
 
-    def forward(self, name, x, missing_index):
-        # missing_index: (1600,6) i.e.(train_num, views)
-        if name == 'exist':
-            x_isreal = dict()
-            for v_num in range(self.views):
-                x_isreal[v_num] = self.Classifiers[v_num](x[v_num])  # 每个模态预测出的概率
-                # 比较两类概率大小 大的为1 小的为0
-        elif name == 'miss':
-            return
+    def forward(self, x):
+        x_pred = dict()
+        for v_num in range(self.views):
+            x_pred[v_num] = self.Classifiers[v_num](x[v_num])  # 每个模态预测出的real or fake概率
+        return x_pred
 
 
 class Generator(nn.Module):  # 相比CPM，删除掉lsd_init，通过encoder产生隐藏层
@@ -181,43 +177,43 @@ class Generator(nn.Module):  # 相比CPM，删除掉lsd_init，通过encoder产�
         # )
 
 
-def train(discriminator, generator, criterion, d_optim, g_optim, epochs, dataloader, print_every = 10):
-    iter_count = 0
-    for epoch in range(epochs):
-        for real_inputs in dataloader:
-            real_inputs = real_inputs.to(device)  # 真图片
-            fake_inputs = generator(torch.randn(real_inputs.size(0), 100).to(device))  # 生成假图片
-            real_labels = torch.ones(real_inputs.size(0)).to(device)  # 真标签
-            fake_labels = torch.zeros(real_inputs.size(0)).to(device)  # 假标签
-
-            # 训练判别器
-            d_output_real = discriminator(real_inputs).view(-1)  # 鉴别真图片
-            d_loss_real = criterion(d_output_real, real_labels)  # 真图片损失
-            d_output_fake = discriminator(fake_inputs.detach()).view(-1)  # 鉴别假图片
-            d_loss_fake = criterion(d_output_fake, fake_labels)  # 假图片损失
-            d_loss = d_loss_fake + d_loss_real  # 计算总损失
-            d_optim.zero_grad()  # 判别器梯度清零
-            d_loss.backward()  # 反向传播
-            d_optim.step()  # 更新鉴别器参数
-
-            # 训练判别器
-            fake_inputs = generator(torch.randn(real_inputs.size(0), 100).to(device))  # 生成假图片
-            g_output_fake = discriminator(fake_inputs).view(-1)  # 鉴别假图片
-            g_loss = criterion(g_output_fake, real_labels)  # 假图片损失
-            g_optim.zero_grad()  # 生成器梯度清零
-            g_loss.backward()  # 反向传播
-            g_optim.step()  # 更新鉴别器参数
-            if iter_count % print_every == 0:
-                print('Epoch:{}, Iter:{}, D:{:.4}, G:{:.4}'.format(epoch, iter_count, d_loss.item(), g_loss.item()))
-            iter_count += 1
-        torch.save(generator.state_dict(), 'g_' + str(epoch))
-
-
-if __name__ == '__main__':
-    # 测试一下GAN
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    d = Discriminator().apply(weights_init).to(device)  # 定义鉴别器
-    g = Generator().apply(weights_init).to(device)  # 定义生成器
-    loss_fn = nn.BCELoss()
-    d_optimizer = torch.optim.Adam(d.parameters(), lr = 0.0003)
-    g_optimizer = torch.optim.Adam(g.parameters(), lr = 0.0003)
+# def train(discriminator, generator, criterion, d_optim, g_optim, epochs, dataloader, print_every = 10):
+#     iter_count = 0
+#     for epoch in range(epochs):
+#         for real_inputs in dataloader:
+#             real_inputs = real_inputs.to(device)  # 真图片
+#             fake_inputs = generator(torch.randn(real_inputs.size(0), 100).to(device))  # 生成假图片
+#             real_labels = torch.ones(real_inputs.size(0)).to(device)  # 真标签
+#             fake_labels = torch.zeros(real_inputs.size(0)).to(device)  # 假标签
+#
+#             # 训练判别器
+#             d_output_real = discriminator(real_inputs).view(-1)  # 鉴别真图片
+#             d_loss_real = criterion(d_output_real, real_labels)  # 真图片损失
+#             d_output_fake = discriminator(fake_inputs.detach()).view(-1)  # 鉴别假图片
+#             d_loss_fake = criterion(d_output_fake, fake_labels)  # 假图片损失
+#             d_loss = d_loss_fake + d_loss_real  # 计算总损失
+#             d_optim.zero_grad()  # 判别器梯度清零
+#             d_loss.backward()  # 反向传播
+#             d_optim.step()  # 更新鉴别器参数
+#
+#             # 训练判别器
+#             fake_inputs = generator(torch.randn(real_inputs.size(0), 100).to(device))  # 生成假图片
+#             g_output_fake = discriminator(fake_inputs).view(-1)  # 鉴别假图片
+#             g_loss = criterion(g_output_fake, real_labels)  # 假图片损失
+#             g_optim.zero_grad()  # 生成器梯度清零
+#             g_loss.backward()  # 反向传播
+#             g_optim.step()  # 更新鉴别器参数
+#             if iter_count % print_every == 0:
+#                 print('Epoch:{}, Iter:{}, D:{:.4}, G:{:.4}'.format(epoch, iter_count, d_loss.item(), g_loss.item()))
+#             iter_count += 1
+#         torch.save(generator.state_dict(), 'g_' + str(epoch))
+#
+#
+# if __name__ == '__main__':
+#     # 测试一下GAN
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#     d = Discriminator().apply(weights_init).to(device)  # 定义鉴别器
+#     g = Generator().apply(weights_init).to(device)  # 定义生成器
+#     loss_fn = nn.BCELoss()
+#     d_optimizer = torch.optim.Adam(d.parameters(), lr = 0.0003)
+#     g_optimizer = torch.optim.Adam(g.parameters(), lr = 0.0003)
