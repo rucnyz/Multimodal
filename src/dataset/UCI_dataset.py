@@ -54,8 +54,9 @@ class UCI_Dataset(Dataset):
         for i in range(len(self.full_data)):
             data[i] = self.full_data[i][idx]
         target = self.full_labels[idx]
+        missing_index = self.missing_index[idx]
         # 返回所有数据
-        return idx, data, target
+        return idx, data, target, missing_index
 
     def __len__(self):  # return the size of the dataset，即数据量
         return len(self.full_labels)
@@ -67,3 +68,6 @@ class UCI_Dataset(Dataset):
         elif self.name == "valid":
             for v in range(args.views):
                 self.full_data[v][missing_index[int(args.num * 4 / 5):][:, v] == 0] = -1
+
+    def set_missing_index(self, missing_index):
+        self.missing_index = missing_index

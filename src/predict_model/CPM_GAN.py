@@ -8,6 +8,19 @@ from utils.loss_func import *
 from utils.preprocess import *
 
 
+class Encoder(nn.Module):
+    def __init__(self, args):
+        super(Encoder, self).__init__()
+        self.view_num = args.views
+        self.Classifiers = nn.ModuleList(
+            [nn.Linear(args.classifier_dims[i], args.lsd_dim) for i in range(self.view_num)])
+    def forward(self, X, missing_index):
+        output = 0
+        for i in range(self.view_num):
+            output += self.Classifiers[i](X[i])*missing_index[:,[i]]
+        return output
+
+
 class CPM_GAN(nn.Module):
     def __init__(self, args):
         super(CPM_GAN, self).__init__()
@@ -21,14 +34,8 @@ class CPM_GAN(nn.Module):
         # 模型初始化
         self.discriminator = Discriminator(args)
         self.decoder = Generator(args)
-        self.encoder = nn.ModuleList(self._make_view(v) for v in range(self.view_num))
-
-    # 下面写的很奇怪，定义好encoder、decoder、discriminator之后还需要下面这个吗，或者下面这个是用来定义encoder的？
-    def forward(self, h):
-        X_pred = dict()
-        for v in range(self.view_num):
-            X_pred[v] = self.net[v](h)
-        return X_pred
+        self.encoder = Encoder(args)
+        a = 1
 
     def lsd_init(self, a):
         h = 0
@@ -39,19 +46,3 @@ class CPM_GAN(nn.Module):
         elif a == 'valid':
             h = xavier_init(self.num - int(self.num * 4 / 5), self.lsd_dim).requires_grad_(True)
         return h
-
-    def _make_view(self, v):
-        dims_net = self.layer_size[v]
-        net1 = nn.Sequential()
-        w = torch.nn.Linear(self.lsd_dim, dims_net[0])
-        nn.init.xavier_normal_(w.weight)  # xavier_normal 初始化
-        nn.init.constant_(w.bias, 0.0)  # 初始化w偏差为常数0
-        net1.add_module('lin' + str(0), w)
-        for num in range(1, len(dims_net)):  # range(1,2) 只运行一次
-            w = torch.nn.Linear(dims_net[num - 1], dims_net[num])
-            nn.init.xavier_normal_(w.weight)
-            nn.init.constant_(w.bias, 0.0)
-            net1.add_module('lin' + str(num), w)
-            net1.add_module('drop' + str(num), torch.nn.Dropout(p = 0.1))
-            # nn.dropout: 防止或减轻过拟合, randomly zeroes some of the elements of the input tensor with probability p
-        return net1

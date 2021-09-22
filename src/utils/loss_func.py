@@ -108,7 +108,8 @@ def classification_loss(label_onehot, y, lsd_temp):
 def reconstruction_loss(view_num, x_pred, x, missing_index):
     loss = 0
     for num in range(view_num):
-        loss += (torch.pow((x_pred[num] - x[num]), 2.0) * missing_index[num]).sum()
+        # 注意这里的改动会使得其余模型均无法使用
+        loss += (torch.pow((x_pred[num] - x[num]), 2.0) * missing_index[:,[num]]).sum()
     return loss
 
 
@@ -127,16 +128,8 @@ def bce_loss(name, output, missing_index):
     real_ = dict()
     fake_ = dict()
     for v in range(len(output)):
-        tmp_real = []
-        tmp_fake = []
-        for i in range(missing_index.shape[0]):
-            if missing_index[i][v] == 1:  # 正样本
-                tmp_real.append(real[v][i])
-            else:  # 负样本
-                tmp_fake.append(fake[v][i])
-        real_[v] = torch.tensor(tmp_real)
-        fake_[v] = torch.tensor(tmp_fake)
-
+        real_[v]=real[v][missing_index[:, v] == 1]
+        fake_[v]=fake[v][missing_index[:, v] == 0]
     loss = 0
     if name == 'exist':
         for v in range(len(output)):
@@ -147,6 +140,5 @@ def bce_loss(name, output, missing_index):
     elif name == 'decoder':  # 尽可能让生成数据与real接近，是fake的概率接近0
         for v in range(len(output)):
             loss += loss_func(fake_[v], torch.zeros(len(fake_[v])))
+    loss = loss.nan_to_num()
     return loss
-
-

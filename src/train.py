@@ -1,14 +1,14 @@
 import math
 import os
 import time
-import torch.nn as nn
+
 from torch.utils.tensorboard import SummaryWriter
 
-import utils.loss_func
+from utils.loss_func import *
 from utils.pred_func import *
 
 
-def train(net, optim, train_loader, eval_loader, missing_index, args):
+def train(net, optim, train_loader, eval_loader, args):
     if args.log:
         writer = SummaryWriter("./logs_train")  # 向log_dir文件夹写入的事件文件
         logfile = open(
@@ -31,51 +31,46 @@ def train(net, optim, train_loader, eval_loader, missing_index, args):
         time_start = time.time()
         train_missing_index = dict()
         # 开始运行
-        for step, (idx, X, y) in enumerate(train_loader):
-            if step == 0:
-                # 生成训练集缺失模态索引
-                for i in range(args.views):
-                    train_missing_index[i] = torch.from_numpy(
-                        missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1)).to(
-                        args.device)
+        for step, (idx, X, y, missing_index) in enumerate(train_loader):
             # 使用cuda或者cpu设备
             for i in range(args.views):
                 X[i] = X[i].to(args.device)
             y = y.to(args.device)
+            missing_index = missing_index.to(args.device)
             # 产生one-hot编码的标签
             y_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
             # --------------------------------------
-            # 重建原数据
-            lsd_train = net.encoder(X)  # （1600，128）
+            # 重建原数据,考虑缺失模态情况
+            lsd_train = net.encoder(X, missing_index)  # （1600，128）
             x_pred = net.decoder(lsd_train)
             # 冻结decoder参数(decoder即generator)，计算discriminator损失
             # 取每一个模态X中未缺失部分作为正样本1，和x_pred中X缺失部分对应的数据作为生成样本0，训练discriminator
             # ######## 如何体现是否缺失 ????????? encoder如何生成缺失数据 ????????
             output_real = net.discriminator(X)
             output_fake = net.discriminator(x_pred)
-            disc_loss_real = bce_loss('exist', output_real, train_missing_index)
-            disc_loss_fake = bce_loss('miss', output_fake, train_missing_index)
+            disc_loss_real = bce_loss('exist', output_real, missing_index)
+            disc_loss_fake = bce_loss('miss', output_fake, missing_index)
             disc_loss = disc_loss_real + disc_loss_fake
             optim["discriminator"].zero_grad()
-            disc_loss.backward()
+            disc_loss.backward(retain_graph = True)
             optim["discriminator"].step()
             # --------------------------------------
-            rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             # 冻结discriminator参数，更新decoder参数
             # x_pred中X【缺失】部分对应的数据作为正样本
-            output_fake = net.discriminator(x_pred.detach())
-            dec_loss = bce_loss('decoder', output_fake, train_missing_index)
+            output_fake = net.discriminator(x_pred)
+            dec_loss = bce_loss('decoder', output_fake, missing_index)
             optim["decoder"].zero_grad()
-            (rec_loss + dec_loss).backward()
+            (rec_loss + dec_loss).backward(retain_graph = True)
             optim["decoder"].step()
             # --------------------------------------
             # 重建原数据
             x_pred = net.decoder(lsd_train)
             # 计算未缺失模态的重建损失和分类损失
             # x_pred-->decoder & encoder  lsd_train-->encoder
-            rec_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
-            clf_loss, predicted = utils.loss_func.classification_loss(y_onehot, y, lsd_train)
+            rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
+            clf_loss, predicted = classification_loss(y_onehot, y, lsd_train)
             optim["encoder"].zero_grad()
             (rec_loss + clf_loss).backward()
             optim["encoder"].step()
@@ -328,12 +323,12 @@ Return:
 def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index, time_start):
     train_accuracy = 0
     all_num = 0
-    classification_loss = 0
-    reconstruction_loss = 0
+    clf_loss = 0
+    rec_loss = 0
     id = None
     label_onehot = None
     # train_batch等于训练数据集大小，循环只会跑一次
-    for step, (idx, X, y) in enumerate(train_loader):
+    for step, (idx, X, y, dd) in enumerate(train_loader):
         # id用于回传(注意每次idx都是一样的，因为设定好了seed)
         # y: 所有数据的类别标签
         for i in range(args.views):
@@ -365,31 +360,31 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
             # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
             x_pred = net(net.lsd_train[idx])  # 输出是训练数据各模态的特征数
             # 所有不缺失数据的误差平方和--> 使得经过net生成的数据与原来数据接近
-            reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            rec_loss = reconstruction_loss(args.views, x_pred, X, train_missing_index)
             # CPM的优化器是MixAdam，有3个optim
             # optim[0]更新模型参数
             # optim[1]更新lsd_train数据
             # optim[2]更新lsd_test数据
             optim[0].zero_grad()
-            reconstruction_loss.backward(retain_graph = True)
+            rec_loss.backward(retain_graph = True)
             optim[0].step()
         # 随后同时进行重建以及分类，optim[1]更新的是隐藏层lsd_train数据
         # train the latent space data to minimize reconstruction loss and classification loss
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
-            loss1 = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
-            loss2, _ = net.lamb * utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
+            loss1 = reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx])
             optim[1].zero_grad()
             loss1.backward()
             loss2.backward()
             optim[1].step()
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
-        classification_loss, predicted = utils.loss_func.classification_loss(label_onehot, y, net.lsd_train[idx])
-        reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, train_missing_index)
+        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx])
+        rec_loss = reconstruction_loss(args.views, x_pred, X, train_missing_index)
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
-            % (epoch + 1, step + 1, train_images, reconstruction_loss, classification_loss,
+            % (epoch + 1, step + 1, train_images, rec_loss, clf_loss,
                *[group['lr'] for group in optim[1].param_groups],
                ((time.time() - time_start) / (step + 1)) * ((len(train_loader.dataset) / args.batch_size) - step) / 60),
             end = '   ')
@@ -397,7 +392,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         all_num += y.size(0)
     train_accuracy = 100 * train_accuracy / all_num
 
-    return classification_loss + reconstruction_loss, train_accuracy, label_onehot, id
+    return clf_loss + rec_loss, train_accuracy, label_onehot, id
 
 
 def evaluate(net, eval_loader, args):
@@ -439,15 +434,15 @@ def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id
         # 现在验证时，我们需要让隐藏层和数据集对应才能验证网络更新的咋样)
         for i in range(5):
             x_pred = net(net.lsd_valid)
-            reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, valid_missing_index)
+            rec_loss = reconstruction_loss(args.views, x_pred, X, valid_missing_index)
             optim[2].zero_grad()
-            reconstruction_loss.backward()
+            rec_loss.backward()
             optim[2].step()
         x_pred = net(net.lsd_valid)  # (400,76)(400,216)(400,64)(400,240)(400,47)(400,6)
-        reconstruction_loss = utils.loss_func.reconstruction_loss(args.views, x_pred, X, valid_missing_index)
+        rec_loss = reconstruction_loss(args.views, x_pred, X, valid_missing_index)
         predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
         # 在eval又不去反向传播损失，完全没必要用classification_loss这个函数, 下面的valid_accuracy直接计算是否分类正确
-        print("Reconstruction Loss = {:.4f}".format(reconstruction_loss))
+        print("Reconstruction Loss = {:.4f}".format(rec_loss))
         predicted = predicted.reshape(len(predicted), 1)
         y = y.reshape(len(y), 1)
         valid_accuracy += eval(args.pred_func)(predicted, y)

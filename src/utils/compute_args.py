@@ -31,6 +31,6 @@ def compute_args(args):
         args.optim = "Adam"
     elif args.model == "CPM_GAN":
         args.lsd_dim = 128
-        args.optim = "MixAdam"
+        args.optim = "GAN_Adam"
 
     return args

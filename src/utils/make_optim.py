@@ -16,6 +16,12 @@ def MixAdam(net, lr):
     optim.append(torch.optim.Adam([net.lsd_train], lr))
     optim.append(torch.optim.Adam([net.lsd_valid], lr))
     return optim
+def GAN_Adam(net, lr):
+    optim = dict()
+    optim.update({"encoder": torch.optim.Adam(net.encoder.parameters(), lr)})
+    optim.update({"decoder": torch.optim.Adam(net.decoder.parameters(), lr)})
+    optim.update({"discriminator": torch.optim.Adam(net.discriminator.parameters(), lr)})
+    return optim
 
 # return torch.optim.Adam([{"params": net.parameters(), "lr": lr},
 #                              {"params": net.lsd_train, "lr": lr},

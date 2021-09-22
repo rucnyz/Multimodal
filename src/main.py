@@ -120,4 +120,4 @@ if __name__ == '__main__':
     elif args.model == "CPM":
         train2(net, optim, train_loader, eval_loader, missing_index, args)
     elif args.model == "CPM_GAN":
-        train(net, optim, train_loader, eval_loader, missing_index, args)
+        train(net, optim, train_loader, eval_loader, args)

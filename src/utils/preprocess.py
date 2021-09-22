@@ -28,6 +28,8 @@ def missing_data_process(args, train_data, valid_data, missing_index):
     elif args.model == "CPM_GAN":
         args.train_batch_size = args.batch_size
         args.valid_batch_size = args.batch_size
+    train_data.set_missing_index(missing_index[:int(args.num * 4 / 5)])
+    valid_data.set_missing_index(missing_index[int(args.num * 4 / 5):])
 
 
 def Normalize(data):
