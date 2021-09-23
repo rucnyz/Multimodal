@@ -83,10 +83,11 @@ def train(net, optim, train_loader, eval_loader, args):
         elapse_time = time_end - time_start
         print('Finished in {:.4f}s'.format(elapse_time))
         print("Train Accuracy :" + str(train_accuracy))
+        print("----------------------------------------------")
         # Eval
-        print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy = evaluate(net, eval_loader, args)
-        print('Valid Accuracy :' + str(valid_accuracy) + '\n')
+        # print('Evaluation...    decay times: {}'.format(decay_count))
+        # valid_accuracy = evaluate(net, eval_loader, args)
+        # print('Valid Accuracy :' + str(valid_accuracy) + '\n')
 
 
 def train1(net, loss_fn, optim, train_loader, eval_loader, args):

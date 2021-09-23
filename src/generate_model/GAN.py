@@ -21,7 +21,7 @@ class Classifier(nn.Module):
         super(Classifier, self).__init__()
         self.fc = nn.ModuleList()
         self.fc.append(nn.Linear(classifier_dims, classes, bias = False))
-        self.fc.append(nn.Softmax())  # 经过Softmax算出来的是属于每个类别的概率(且各类别概率之和为1)，因此损失函数是交叉熵
+        self.fc.append(nn.Softmax(dim = 0))  # 经过Softmax算出来的是属于每个类别的概率(且各类别概率之和为1)，因此损失函数是交叉熵
 
     def forward(self, x):
         h = self.fc[0](x)
@@ -37,6 +37,7 @@ class Discriminator(nn.Module):
     :param classifier_dims: Dimension of the classifier
     :param annealing_epoch: KL divergence annealing epoch during training
     """
+
     # noinspection PyTypeChecker
     def __init__(self, args):
         super(Discriminator, self).__init__()
@@ -175,7 +176,6 @@ class Generator(nn.Module):  # 相比CPM，删除掉lsd_init，通过encoder产�
         #   (lin1): Linear(in_features=150, out_features=76, bias=True)
         #   (drop1): Dropout(p=0.1, inplace=False)
         # )
-
 
 # def train(discriminator, generator, criterion, d_optim, g_optim, epochs, dataloader, print_every = 10):
 #     iter_count = 0
