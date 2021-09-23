@@ -13,11 +13,16 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.view_num = args.views
         self.Classifiers = nn.ModuleList(
-            [nn.Linear(args.classifier_dims[i], args.lsd_dim) for i in range(self.view_num)])
+            [nn.Sequential(
+                nn.Linear(args.classifier_dims[i], 150),
+                nn.Linear(150, args.lsd_dim),
+                nn.Dropout(p = 0.1)
+            ) for i in range(self.view_num)])
+
     def forward(self, X, missing_index):
         output = 0
         for i in range(self.view_num):
-            output += self.Classifiers[i](X[i])*missing_index[:,[i]]
+            output += self.Classifiers[i](X[i]) * missing_index[:, [i]]
         return output
 
 

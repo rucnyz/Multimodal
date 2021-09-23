@@ -33,6 +33,8 @@ def train(net, optim, train_loader, eval_loader, args):
         # 开始运行
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
             # 使用cuda或者cpu设备
+            if step == 31:
+                xx = 1
             for i in range(args.views):
                 X[i] = X[i].to(args.device)
             y = y.to(args.device)
@@ -67,12 +69,14 @@ def train(net, optim, train_loader, eval_loader, args):
             # --------------------------------------
             # 重建原数据
             x_pred = net.decoder(lsd_train)
+            output_fake = net.discriminator(x_pred)
+            dec_loss = bce_loss('decoder', output_fake, missing_index)
             # 计算未缺失模态的重建损失和分类损失
             # x_pred-->decoder & encoder  lsd_train-->encoder
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             clf_loss, predicted = classification_loss(y_onehot, y, lsd_train)
             optim["encoder"].zero_grad()
-            (rec_loss + clf_loss).backward()
+            (rec_loss + clf_loss + dec_loss).backward()
             optim["encoder"].step()
             # ---------------------------------------
             train_accuracy += eval(args.pred_func)(predicted, y)
