@@ -29,12 +29,12 @@ def train(net, optim, train_loader, eval_loader, args):
         all_num = 0
         train_accuracy = 0
         time_start = time.time()
-        train_missing_index = dict()
+        rec_loss_sum = 0
+        dec_loss_sum = 0
+        clf_loss_sum = 0
         # 开始运行
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
             # 使用cuda或者cpu设备
-            if step == 31:
-                xx = 1
             for i in range(args.views):
                 X[i] = X[i].to(args.device)
             y = y.to(args.device)
@@ -79,15 +79,26 @@ def train(net, optim, train_loader, eval_loader, args):
             (rec_loss + clf_loss + dec_loss).backward()
             optim["encoder"].step()
             # ---------------------------------------
+            rec_loss_sum += rec_loss.item()
+            dec_loss_sum += dec_loss.item()
+            clf_loss_sum += clf_loss.item()
             train_accuracy += eval(args.pred_func)(predicted, y)
             all_num += y.size(0)
+            # 训练过step+1次，计算平均loss
+            print(
+                "\r[Epoch %2d][Step %4d/%4d] rec_loss: %.4f, clf_loss:%.4f, dec_loss:%.4f" % (
+                    epoch + 1, step + 1, train_images, rec_loss_sum / (step + 1), clf_loss_sum / (step + 1),
+                    dec_loss_sum / (step + 1),), end = "      ")
         train_accuracy = 100 * train_accuracy / all_num
         # 记录时间
         time_end = time.time()
         elapse_time = time_end - time_start
-        print('Finished in {:.4f}s'.format(elapse_time))
+        print('\nFinished in {:.4f}s'.format(elapse_time))
         print("Train Accuracy :" + str(train_accuracy))
-        print("----------------------------------------------")
+        # TODO 现在我觉得可以先不考虑训练集使用GAN生成数据来填到训练数据的方法，而只在evaluate时将GAN生成数据填进测试数据集，因为训练
+        #  次数肯定会很多(好几百次)，每一次都改变X的话后果未知(不知道会不会让网络参数变得很奇怪)，但测试集我们只是会迭代个几次就差不多了
+        #  ，可能更容易看出GAN生成效果
+
         # Eval
         # print('Evaluation...    decay times: {}'.format(decay_count))
         # valid_accuracy = evaluate(net, eval_loader, args)
