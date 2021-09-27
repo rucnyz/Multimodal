@@ -47,10 +47,10 @@ put them in folder `data/`
 
 ### Training
 
-To train a TMC model on the UCI labels, use the following command :
+To train a CPM_GAN model on the UCI labels, use the following command :
 
 ```
-python main.py --model TMC --name mymodel --seed 123 --batch_size 200 --lr_base 0.0003 --dataset UCI
+--model CPM_GAN --name mymodel --seed 123 --batch_size 200 --lr_base 0.0005 --dataset UCI --num_worker 0 --missing_rate 0.3 --loop_times 4
 ```
 
 You can adjust some hyperparameters in the following ways(e.g. modify the missing rate)
