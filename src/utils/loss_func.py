@@ -109,36 +109,41 @@ def reconstruction_loss(view_num, x_pred, x, missing_index):
     loss = 0
     for num in range(view_num):
         # 注意这里的改动会使得其余模型均无法使用
-        loss += (torch.pow((x_pred[num] - x[num]), 2.0) * missing_index[:,[num]]).sum()
+        loss += (torch.pow((x_pred[num] - x[num]), 2.0) * missing_index[:, [num]]).sum()
     return loss
 
 
-def bce_loss(name, output, missing_index):
-    loss_func = nn.BCELoss()  # 对一个batch里面的数据做二元交叉熵并且求平均
-    # output：6个模态，每个模态为（1600，2）向量
-    # missing_index: (1600,6) i.e.(train_num, views)
-    # y = torch.ones(missing_index.shape[0])  # (1600,1)
-    real = dict()
-    fake = dict()
-    for v in range(len(output)):
-        real[v] = output[v][:, 0]  # 取real的概率值
-        fake[v] = output[v][:, 1]  # 取fake的概率值
+class MyBCELoss(nn.Module):
+    def __init__(self, args):
+        super(MyBCELoss, self).__init__()
+        self.device = args.device
 
-    # 接下来删除不需要的概率值，如果是正样本则删除missing_index中为0的值，如果是生成样本则删除missing_index中为1的值
-    real_ = dict()
-    fake_ = dict()
-    for v in range(len(output)):
-        real_[v]=real[v][missing_index[:, v] == 1]
-        fake_[v]=fake[v][missing_index[:, v] == 0]
-    loss = 0
-    if name == 'exist':
+    def forward(self, name, output, missing_index):
+        loss_func = nn.BCELoss().to(self.device)  # 对一个batch里面的数据做二元交叉熵并且求平均
+        # output：6个模态，每个模态为（1600，2）向量
+        # missing_index: (1600,6) i.e.(train_num, views)
+        # y = torch.ones(missing_index.shape[0])  # (1600,1)
+        real = dict()
+        fake = dict()
         for v in range(len(output)):
-            loss += loss_func(real_[v], torch.ones(len(real_[v])))
-    elif name == 'miss':
+            real[v] = output[v][:, 0]  # 取real的概率值
+            fake[v] = output[v][:, 1]  # 取fake的概率值
+
+        # 接下来删除不需要的概率值，如果是正样本则删除missing_index中为0的值，如果是生成样本则删除missing_index中为1的值
+        real_ = dict()
+        fake_ = dict()
         for v in range(len(output)):
-            loss += loss_func(fake_[v], torch.ones(len(fake_[v])))
-    elif name == 'decoder':  # 尽可能让生成数据与real接近，是fake的概率接近0
-        for v in range(len(output)):
-            loss += loss_func(fake_[v], torch.zeros(len(fake_[v])))
-    loss = loss.nan_to_num()
-    return loss
+            real_[v] = real[v][missing_index[:, v] == 1]
+            fake_[v] = fake[v][missing_index[:, v] == 0]
+        loss = 0
+        if name == 'exist':
+            for v in range(len(output)):
+                loss += loss_func(real_[v], torch.ones(len(real_[v]), device = self.device))
+        elif name == 'miss':
+            for v in range(len(output)):
+                loss += loss_func(fake_[v], torch.ones(len(fake_[v]), device = self.device))
+        elif name == 'decoder':  # 尽可能让生成数据与real接近，是fake的概率接近0
+            for v in range(len(output)):
+                loss += loss_func(fake_[v], torch.zeros(len(fake_[v]), device = self.device))
+        loss = loss.nan_to_num()
+        return loss

@@ -20,6 +20,7 @@ def train(net, optim, train_loader, eval_loader, args):
     best_eval_accuracy = 0  # 最佳验证准确率
     decay_count = 0
     train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)
+    bce_loss = MyBCELoss(args)
     # train for each epoch
     for epoch in range(0, args.max_epoch):
         # 初始化参数
@@ -435,7 +436,7 @@ def evaluate(net, eval_loader, args):
             # 将预测值补充到原数据中,loop_times决定了跑几个来回
             for i in range(args.loop_times):
                 fill_data(X, x_pred, missing_index)
-                lsd_valid = net.encoder(X, torch.ones(missing_index.shape))
+                lsd_valid = net.encoder(X, torch.ones(missing_index.shape,device = args.device))
                 x_pred = net.decoder(lsd_valid)
             predicted = ave(lsd_valid, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
