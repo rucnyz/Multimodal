@@ -18,10 +18,7 @@ def train(net, optim, train_loader, eval_loader, args):
         )  # args.output默认为ckpt
         logfile.write(str(args))
     best_eval_accuracy = 0  # 最佳验证准确率
-    early_stop = 0
     decay_count = 0
-    fluctuate_count = 0
-    eval_accuracies = []  # 记录每一次验证集的准确率
     train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)
     # train for each epoch
     for epoch in range(0, args.max_epoch):
@@ -88,7 +85,7 @@ def train(net, optim, train_loader, eval_loader, args):
             print(
                 "\r[Epoch %2d][Step %4d/%4d] rec_loss: %.4f, clf_loss:%.4f, dec_loss:%.4f" % (
                     epoch + 1, step + 1, train_images, rec_loss_sum / (step + 1), clf_loss_sum / (step + 1),
-                    dec_loss_sum / (step + 1),), end = "      ")
+                    dec_loss_sum / (step + 1),), end = " ")
         train_accuracy = 100 * train_accuracy / all_num
         # 记录时间
         time_end = time.time()
@@ -100,10 +97,13 @@ def train(net, optim, train_loader, eval_loader, args):
         #  ，可能更容易看出GAN生成效果
 
         # Eval
-        # print('Evaluation...    decay times: {}'.format(decay_count))
-        # valid_accuracy = evaluate(net, eval_loader, args)
-        # print('Valid Accuracy :' + str(valid_accuracy) + '\n')
-
+        print('Evaluation...    decay times: {}'.format(decay_count))
+        valid_accuracy = evaluate(net, eval_loader, args)
+        print('Valid Accuracy :' + str(valid_accuracy) + '\n')
+        if valid_accuracy >= best_eval_accuracy:
+            best_eval_accuracy = valid_accuracy
+    print("---------------------------------------------")
+    print("Best evaluate accuracy:{}".format(best_eval_accuracy))
 
 def train1(net, loss_fn, optim, train_loader, eval_loader, args):
     if args.log:
@@ -411,12 +411,42 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
     return clf_loss + rec_loss, train_accuracy, label_onehot, id
 
 
+# 将X中的缺失数据用x_pred即生成数据来代替
+def fill_data(X, x_pred, missing_index):
+    for i in range(len(X)):
+        X[i][missing_index[:, i] == 0] = x_pred[i][missing_index[:, i] == 0]
+
+
 def evaluate(net, eval_loader, args):
+    accuracy = 0
+    all_num = 0
     net.train(False)
+    with torch.no_grad():
+        for step, (ids, X, y, missing_index) in enumerate(eval_loader):
+            for i in range(args.views):
+                X[i] = X[i].to(args.device)
+            y = y.to(args.device)
+            missing_index = missing_index.to(args.device)
+            # 生成one_hot编码的label来进行后续分类
+            y_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
+                y.shape[0], 1), 1)
+            lsd_valid = net.encoder(X, missing_index)  # (1600，128)
+            x_pred = net.decoder(lsd_valid)
+            # 将预测值补充到原数据中,loop_times决定了跑几个来回
+            for i in range(args.loop_times):
+                fill_data(X, x_pred, missing_index)
+                lsd_valid = net.encoder(X, torch.ones(missing_index.shape))
+                x_pred = net.decoder(lsd_valid)
+            predicted = ave(lsd_valid, lsd_valid, y_onehot)
+            accuracy += eval(args.pred_func)(predicted, y)
+            all_num += y.size(0)
+        accuracy = accuracy / all_num
+    net.train(True)  # ==net.train()，恢复训练模式
+    return 100 * np.array(accuracy)
 
 
 def evaluate_TMC(net, eval_loader, args):
-    net.train(False)  # ==net.eval(),使得dropout和BatchNorm层参数被完全冻结
+    net.train(False)
     accuracy = 0
     all_num = 0
     with torch.no_grad():
@@ -429,7 +459,7 @@ def evaluate_TMC(net, eval_loader, args):
             accuracy += eval(args.pred_func)(predicted, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num
-    net.train1(True)  # ==net.train()，恢复训练模式
+    net.train(True)  # ==net.train()，恢复训练模式
     return 100 * np.array(accuracy)
 
 

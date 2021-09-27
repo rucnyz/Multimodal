@@ -34,13 +34,14 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--batch_size', type = int, default = 64)
     parser.add_argument('--num_workers', type = int, default = 0)
-    parser.add_argument('--max_epoch', type = int, default = 700)
+    parser.add_argument('--max_epoch', type = int, default = 300)
     parser.add_argument('--lr_base', type = float, default = 0.0003)
     parser.add_argument('--lr_decay', type = float, default = 0.5)
     parser.add_argument('--lr_decay_times', type = int, default = 2)
     parser.add_argument('--grad_norm_clip', type = float, default = -1)
     parser.add_argument('--early_stop', type = int, default = 3)
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
+    parser.add_argument('--loop_times', type = int, default = 1)
     # Dataset
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
