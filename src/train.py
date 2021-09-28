@@ -38,7 +38,7 @@ def train(net, optim, train_loader, eval_loader, args):
             y = y.to(args.device)
             missing_index = missing_index.to(args.device)
             # 产生one-hot编码的标签
-            y_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
+            y_onehot = torch.zeros(y.shape[0], args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
             # --------------------------------------
             # 重建原数据,考虑缺失模态情况
@@ -429,7 +429,7 @@ def evaluate(net, eval_loader, args):
             y = y.to(args.device)
             missing_index = missing_index.to(args.device)
             # 生成one_hot编码的label来进行后续分类
-            y_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
+            y_onehot = torch.zeros(y.shape[0], args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
             lsd_valid = net.encoder(X, missing_index)  # (1600，128)
             x_pred = net.decoder(lsd_valid)

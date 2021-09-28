@@ -196,7 +196,7 @@ class Generator(nn.Module):  # 相比CPM，删除掉lsd_init，通过encoder产�
 #             d_loss.backward()  # 反向传播
 #             d_optim.step()  # 更新鉴别器参数
 #
-#             # 训练判别器
+#             # 训练生成器
 #             fake_inputs = generator(torch.randn(real_inputs.size(0), 100).to(device))  # 生成假图片
 #             g_output_fake = discriminator(fake_inputs).view(-1)  # 鉴别假图片
 #             g_loss = criterion(g_output_fake, real_labels)  # 假图片损失

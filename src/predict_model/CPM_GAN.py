@@ -40,7 +40,6 @@ class CPM_GAN(nn.Module):
         self.discriminator = Discriminator(args)
         self.decoder = Generator(args)
         self.encoder = Encoder(args)
-        a = 1
 
     def lsd_init(self, a):
         h = 0
