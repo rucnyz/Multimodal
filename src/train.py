@@ -26,6 +26,7 @@ def train(net, optim, train_loader, eval_loader, args):
         # 初始化参数
         all_num = 0
         train_accuracy = 0
+        train_accuracy_GAN = 0
         time_start = time.time()
         rec_loss_sum = 0
         dec_loss_sum = 0
@@ -77,10 +78,16 @@ def train(net, optim, train_loader, eval_loader, args):
             (rec_loss + clf_loss + dec_loss).backward()
             optim["encoder"].step()
             # ---------------------------------------
+            # 用GAN生成数据再跑一遍
+            fill_data(X,x_pred, missing_index)
+            lsd = net.encoder(X, torch.ones(missing_index.shape,device = args.device))
+            predicted_GAN = ave(lsd, lsd, y_onehot)
+            # ---------------------------------------
             rec_loss_sum += rec_loss.item()
             dec_loss_sum += dec_loss.item()
             clf_loss_sum += clf_loss.item()
             train_accuracy += eval(args.pred_func)(predicted, y)
+            train_accuracy_GAN += eval(args.pred_func)(predicted_GAN, y)
             all_num += y.size(0)
             # 训练过step+1次，计算平均loss
             print(
@@ -88,15 +95,15 @@ def train(net, optim, train_loader, eval_loader, args):
                     epoch + 1, step + 1, train_images, rec_loss_sum / (step + 1), clf_loss_sum / (step + 1),
                     dec_loss_sum / (step + 1),), end = " ")
         train_accuracy = 100 * train_accuracy / all_num
+        train_accuracy_GAN = 100 * train_accuracy_GAN / all_num
         # 记录时间
         time_end = time.time()
         elapse_time = time_end - time_start
         print('\nFinished in {:.4f}s'.format(elapse_time))
-        print("Train Accuracy :" + str(train_accuracy))
+        print("Train Accuracy :" + str(train_accuracy)+"    with GAN :"+str(train_accuracy_GAN))
         # TODO 现在我觉得可以先不考虑训练集使用GAN生成数据来填到训练数据的方法，而只在evaluate时将GAN生成数据填进测试数据集，因为训练
         #  次数肯定会很多(好几百次)，每一次都改变X的话后果未知(不知道会不会让网络参数变得很奇怪)，但测试集我们只是会迭代个几次就差不多了
         #  ，可能更容易看出GAN生成效果
-
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
         valid_accuracy = evaluate(net, eval_loader, args)
