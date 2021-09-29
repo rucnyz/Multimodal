@@ -32,5 +32,7 @@ def compute_args(args):
     elif args.model == "CPM_GAN":
         args.lsd_dim = 128
         args.optim = "GAN_Adam"
-
+    # 训练集补充缺失数据，-1代表不补充，则设置GAN_start>max_epoch即可
+    if args.GAN_start == -1:
+        args.GAN_start = args.max_epoch + 1
     return args

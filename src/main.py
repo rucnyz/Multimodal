@@ -42,6 +42,7 @@ def parse_args():
     parser.add_argument('--early_stop', type = int, default = 3)
     parser.add_argument('--seed', type = int, default = random.randint(0, 9999999))
     parser.add_argument('--loop_times', type = int, default = 1)
+    parser.add_argument('--GAN_start', type = int, default = 200)
     # Dataset
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
