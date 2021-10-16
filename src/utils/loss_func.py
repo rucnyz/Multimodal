@@ -12,8 +12,8 @@ from torch.nn.functional import relu
 
 def KL(alpha, c):
     beta = torch.ones((1, c))
-    if torch.cuda.is_available():
-        beta = beta.cuda()
+    # if torch.cuda.is_available():
+    #     beta = beta.cuda()
     S_alpha = torch.sum(alpha, dim = 1, keepdim = True)
     S_beta = torch.sum(beta, dim = 1, keepdim = True)
     lnB = torch.lgamma(S_alpha) - torch.sum(torch.lgamma(alpha), dim = 1, keepdim = True)
@@ -73,8 +73,8 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 一个聚类的思路
     train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,128)*(128,1600) = (1600,1600)  含负数
     train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # (1600,1600)单位矩阵
-    if torch.cuda.is_available():
-        train_E = train_E.cuda()
+    # if torch.cuda.is_available():
+    #     train_E = train_E.cuda()
     train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素
     # 相似度：这个(N,N)的矩阵的(i,j)位置的元素，代表着第i个样本和第j个样本的点积(第i个数据是指一个lsd_dim长度的向量)，我们记这个点积结果为 相似度
     label_num = label_onehot.sum(0, keepdim = True)

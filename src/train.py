@@ -2,7 +2,6 @@ import math
 import os
 import time
 
-import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from utils.loss_func import *
@@ -225,7 +224,7 @@ def train1(net, loss_fn, optim, train_loader, eval_loader, args):
         logfile.close()
 
 
-def train2(net, optim, train_loader, eval_loader, missing_index, args):
+def train2(net, optim, train_loader, eval_loader, args):
     if args.log:
         writer = SummaryWriter("./logs_train")
         logfile = open(
@@ -241,7 +240,7 @@ def train2(net, optim, train_loader, eval_loader, missing_index, args):
     for epoch in range(0, 200):
         time_start = time.time()
         loss_sum, train_accuracy, label_onehot, id = train_CPM(args, epoch, net, optim, train_images,
-                                                               train_loader, missing_index, time_start)
+                                                               train_loader, time_start)
         time_end = time.time()
         elapse_time = time_end - time_start
         print('Finished in {:.4f}s'.format(elapse_time))
@@ -249,7 +248,7 @@ def train2(net, optim, train_loader, eval_loader, missing_index, args):
         print("Train Accuracy :" + str(train_accuracy))
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy = evaluate_CPM(args, net, optim, eval_loader, missing_index, label_onehot, id)
+        valid_accuracy = evaluate_CPM(args, net, optim, eval_loader, label_onehot, id)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
         if args.log:
             # logging train for tensorBoard and file
@@ -344,7 +343,7 @@ Return:
 """
 
 
-def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index, time_start):
+def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
     train_accuracy = 0
     all_num = 0
     clf_loss = 0
@@ -352,13 +351,14 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
     id = None
     label_onehot = None
     # train_batch等于训练数据集大小，循环只会跑一次
-    for step, (idx, X, y, dd) in enumerate(train_loader):
+    for step, (idx, X, y, missing_index) in enumerate(train_loader):
         # id用于回传(注意每次idx都是一样的，因为设定好了seed)
         # y: 所有数据的类别标签
         for i in range(args.views):
             X[i] = X[i].to(args.device)
         y = y.to(args.device)
         id = idx
+        missing_index.to(args.device)
         # 用训练集标签生成one_hot标签（即每个数据标签变成(1,10)向量，属于那个类别该类别为1，其他为0）
         label_onehot = torch.zeros(args.train_batch_size, args.classes, device = args.device).scatter_(1, y.reshape(
             y.shape[0], 1), 1)
@@ -368,14 +368,10 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         # y[ index[i][j][k] ] [j][k] = src[i][j][k] # if dim == 0
         # y[i] [ index[i][j][k] ] [k] = src[i][j][k] # if dim == 1
         # y[i][j] [ index[i][j][k] ]  = src[i][j][k] # if dim == 2
-        train_missing_index = dict()
         # 生成训练集缺失模态索引
-        for i in range(args.views):
-            train_missing_index[i] = torch.from_numpy(
-                missing_index[:int(args.num * 4 / 5)][idx][:, i].reshape(args.train_batch_size, 1)).to(args.device)
-            # missing_index[:int(args.num * 4 / 5)]是训练集的缺失模态索引
-            # missing_index[int(args.num * 4 / 5)：]是验证集的缺失模态索引
-            # 实际上，missing_index[:int(args.num * 4 / 5)][idx][:, i]和missing_index[idx][:, i]等价，因为idx最大为1599
+        # missing_index[:int(args.num * 4 / 5)]是训练集的缺失模态索引
+        # missing_index[int(args.num * 4 / 5)：]是验证集的缺失模态索引
+        # 实际上，missing_index[:int(args.num * 4 / 5)][idx][:, i]和missing_index[idx][:, i]等价，因为idx最大为1599
 
         # 首先进行重建，也就是decoder的过程，具体见reconstruction_loss函数。optim[0]更新的是模型参数
         # reconstruction_loss体现的是经过autoencoder后
@@ -384,7 +380,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
             # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
             x_pred = net(net.lsd_train[idx])  # 输出是训练数据各模态的特征数
             # 所有不缺失数据的误差平方和--> 使得经过net生成的数据与原来数据接近
-            rec_loss = reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
             # CPM的优化器是MixAdam，有3个optim
             # optim[0]更新模型参数
             # optim[1]更新lsd_train数据
@@ -396,7 +392,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         # train the latent space data to minimize reconstruction loss and classification loss
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
-            loss1 = reconstruction_loss(args.views, x_pred, X, train_missing_index)
+            loss1 = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
             loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx])
             optim[1].zero_grad()
             loss1.backward()
@@ -405,7 +401,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, missing_index
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
         clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx])
-        rec_loss = reconstruction_loss(args.views, x_pred, X, train_missing_index)
+        rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
             % (epoch + 1, step + 1, train_images, rec_loss, clf_loss,
@@ -472,28 +468,25 @@ def evaluate_TMC(net, eval_loader, args):
 
 
 # 和前面train_CPM对应
-def evaluate_CPM(args, net, optim, valid_loader, missing_index, label_onehot, id):
+def evaluate_CPM(args, net, optim, valid_loader, label_onehot, id):
     valid_accuracy = 0
     all_num = 0
-    for step, (idx, X, y) in enumerate(valid_loader):
+    for step, (idx, X, y, missing_index) in enumerate(valid_loader):
         for i in range(args.views):
             X[i] = X[i].to(args.device)
         y = y.to(args.device)
-        valid_missing_index = dict()
-        for i in range(args.views):
-            valid_missing_index[i] = torch.from_numpy(
-                missing_index[int(args.num * 4 / 5):][:, i].reshape(args.valid_batch_size, 1)).to(args.device)
+        missing_index = missing_index.to(args.device)
 
         # 注意此处我们不再更新网络参数，只关心验证集的隐藏层数据(很好理解因为网络相当于在训练时被更新好了，
         # 现在验证时，我们需要让隐藏层和数据集对应才能验证网络更新的咋样)
         for i in range(5):
             x_pred = net(net.lsd_valid)
-            rec_loss = reconstruction_loss(args.views, x_pred, X, valid_missing_index)
+            rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             optim[2].zero_grad()
             rec_loss.backward()
             optim[2].step()
         x_pred = net(net.lsd_valid)  # (400,76)(400,216)(400,64)(400,240)(400,47)(400,6)
-        rec_loss = reconstruction_loss(args.views, x_pred, X, valid_missing_index)
+        rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
         predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
         # 在eval又不去反向传播损失，完全没必要用classification_loss这个函数, 下面的valid_accuracy直接计算是否分类正确
         print("Reconstruction Loss = {:.4f}".format(rec_loss))

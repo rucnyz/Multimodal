@@ -89,8 +89,8 @@ if __name__ == '__main__':
 
     # DataLoader: DataSet的打包
     train_loader = DataLoader(train_dset, args.train_batch_size, num_workers = args.num_workers, shuffle = True,
-                              pin_memory = True)
-    eval_loader = DataLoader(eval_dset, args.valid_batch_size, num_workers = args.num_workers, pin_memory = True)
+                              pin_memory = False)
+    eval_loader = DataLoader(eval_dset, args.valid_batch_size, num_workers = args.num_workers, pin_memory = False)
     # batch_size:一次运行多少个sample
     # shuffle是打乱顺序: True两次顺序不同，False两次顺序相同，默认为false
     # num_workers: 采用多进程进行加载，默认为0，即逐进程；>0在windows下会出现错误
@@ -120,6 +120,6 @@ if __name__ == '__main__':
     if args.model == "TMC":
         train1(net, loss_fn, optim, train_loader, eval_loader, args)
     elif args.model == "CPM":
-        train2(net, optim, train_loader, eval_loader, missing_index, args)
+        train2(net, optim, train_loader, eval_loader, args)
     elif args.model == "CPM_GAN":
         train(net, optim, train_loader, eval_loader, args)

@@ -16,7 +16,8 @@ def compute_args(args):
         args.dataloader = "UKB_Dataset"
         args.pred_func = "accuracy_count"
     # cuda 电脑的 GPU 能否被 PyTorch 调用
-    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    args.device = torch.device("cpu")
     # Loss function to use
     if args.dataset == "Caltech101_7" or args.dataset == "Caltech101_20" \
             or args.dataset == "Reuters" or args.dataset == "NUSWIDEOBJ" \
