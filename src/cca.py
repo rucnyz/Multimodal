@@ -14,6 +14,8 @@ from torch import nn
 from dataset.UCI_dataset import UCI_Dataset
 from utils.preprocess import *
 from torch.utils.data import DataLoader
+from utils.loss_func import *
+from utils.pred_func import *
 
 
 if os.getcwd().endswith("src"):
@@ -93,6 +95,7 @@ net = nn.ModuleList(_make_view(v) for v in range(args.views))
 net.to(args.device)
 
 loss_fn = nn.CrossEntropyLoss()
+args.pred_func = "accuracy_count"
 optim = torch.optim.Adam(net.parameters(), lr = 0.1)
 # 开始运行
 
@@ -121,20 +124,24 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
         # train the network to minimize reconstruction loss
         for i in range(5):
             # x_pred得到的是训练数据，注意我们这里要做的是尽可能让隐藏层lsd_train通过网络变得更像原训练数据集X
-            x_pred = net(s_train[idx])  # 输出是训练数据各模态的特征数
+            x_pred = dict()
+            for v in range(args.views):
+                x_pred[v] = net[v](s_train[idx])
             # 所有不缺失数据的误差平方和--> 使得经过net生成的数据与原来数据接近
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
             optim.zero_grad()
             rec_loss.backward(retain_graph = True)
             optim.step()
         # 最后算一次，进行输出
-        x_pred = net(s_train[idx])
-        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx])
+        x_pred = dict()
+        for v in range(args.views):
+            x_pred[v] = net[v](s_train[idx])
+        clf_loss, predicted = classification_loss(label_onehot, y, s_train[idx])
         rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
             % (epoch + 1, step + 1, train_images, rec_loss, clf_loss,
-               *[group['lr'] for group in optim[1].param_groups],
+               *[group['lr'] for group in optim.param_groups],
                ((time.time() - time_start) / (step + 1)) * ((len(train_loader.dataset) / args.batch_size) - step) / 60),
             end = '   ')
         train_accuracy += eval(args.pred_func)(predicted, y)
@@ -153,9 +160,11 @@ def evaluate_CPM(args, net, optim, valid_loader, label_onehot, id):
         y = y.to(args.device)
         missing_index = missing_index.to(args.device)
         with torch.no_grad():
-            x_pred = net(s_valid)  # #################?
+            x_pred = dict()
+            for v in range(args.views):
+                x_pred[v] = net[v](s_train[idx])
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
-            predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
+            predicted = ave(s_train[id], s_valid, label_onehot)
         # 在eval又不去反向传播损失，完全没必要用classification_loss这个函数, 下面的valid_accuracy直接计算是否分类正确
         print("Reconstruction Loss = {:.4f}".format(rec_loss))
         predicted = predicted.reshape(len(predicted), 1)
