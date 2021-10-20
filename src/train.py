@@ -42,7 +42,7 @@ def train(net, optim, train_loader, eval_loader, args):
                 with torch.no_grad():
                     x_pred = net.decoder(net.encoder(X, missing_index))
                     fill_data(X, x_pred, missing_index)
-                    missing_index = torch.ones(missing_index.shape, device = args.device)
+                    missing_index = torch.ones(missing_index.shape, device=args.device)
             # 产生one-hot编码的标签
             y_onehot = torch.zeros(y.shape[0], args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)

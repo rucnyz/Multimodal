@@ -16,7 +16,7 @@ class Encoder(nn.Module):
             [nn.Sequential(
                 nn.Linear(args.classifier_dims[i], 150),
                 nn.Linear(150, args.lsd_dim),
-                nn.Dropout(p = 0.1)
+                nn.Dropout(p = 0.1)  # 解决梯度爆炸问题
             ) for i in range(self.view_num)])
 
     def forward(self, X, missing_index):
