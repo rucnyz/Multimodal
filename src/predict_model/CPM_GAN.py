@@ -3,6 +3,7 @@
 # @Author  : nieyuzhou
 # @File    : CPM_GAN.py
 # @Software: PyCharm
+
 from generate_model.GAN import *
 from utils.loss_func import *
 from utils.preprocess import *
@@ -16,14 +17,28 @@ class Encoder(nn.Module):
             [nn.Sequential(
                 nn.Linear(args.classifier_dims[i], 150),
                 nn.Linear(150, args.lsd_dim),
-                nn.Dropout(p = 0.1)  # 解决梯度爆炸问题
+                nn.Dropout(p = 0.3)  # 解决梯度爆炸问题
             ) for i in range(self.view_num)])
+        self.Wq = nn.Linear(args.views * args.lsd_dim, args.views * args.lsd_dim, bias = False)
+        self.Wk = nn.Linear(args.views * args.lsd_dim, args.views * args.lsd_dim, bias = False)
+        self.Wv = nn.Linear(args.views * args.lsd_dim, args.lsd_dim, bias = False)
 
     def forward(self, X, missing_index):
-        output = 0
+        # 原方法
+        # attention = 0
+        # for i in range(self.view_num):
+        #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
+
+        # 下为attention方法
+        output = torch.tensor([])
         for i in range(self.view_num):
-            output += self.Classifiers[i](X[i]) * missing_index[:, [i]]
-        return output
+            output = torch.concat((output, self.Classifiers[i](X[i]) * missing_index[:, [i]]), 1)
+        # 此时output为(batch size, views*lsd_dim维)
+        output_Q = self.Wq(output)
+        output_K = self.Wk(output)
+        output_V = self.Wv(output)
+        attention = torch.softmax(output_Q.mm(output_K.T), dim = 1).mm(output_V)
+        return attention
 
 
 class CPM_GAN(nn.Module):

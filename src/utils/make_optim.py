@@ -20,9 +20,9 @@ def MixAdam(net, lr):
 
 def GAN_Adam(net, lr):  # 都是更改参数
     optim = dict()
-    optim.update({"encoder": torch.optim.Adam(net.encoder.parameters(), lr)})
-    optim.update({"decoder": torch.optim.Adam(net.decoder.parameters(), lr)})
-    optim.update({"discriminator": torch.optim.Adam(net.discriminator.parameters(), lr)})
+    optim.update({"encoder": torch.optim.Adam(net.encoder.parameters(), lr, weight_decay=0.001)})
+    optim.update({"decoder": torch.optim.Adam(net.decoder.parameters(), lr, weight_decay=0.001)})
+    optim.update({"discriminator": torch.optim.Adam(net.discriminator.parameters(), lr, weight_decay=0.001)})
     return optim
 
 # return torch.optim.Adam([{"params": net.parameters(), "lr": lr},
