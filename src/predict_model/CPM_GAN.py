@@ -16,28 +16,25 @@ class Encoder(nn.Module):
         self.Classifiers = nn.ModuleList(
             [nn.Sequential(
                 nn.Linear(args.classifier_dims[i], 150),
+                nn.ReLU(),
                 nn.Linear(150, args.lsd_dim),
-                nn.Dropout(p = 0.3)  # 解决梯度爆炸问题
+                nn.Dropout(p = 0.2)  # 解决梯度爆炸问题
             ) for i in range(self.view_num)])
-        self.Wq = nn.Linear(args.views * args.lsd_dim, args.views * args.lsd_dim, bias = False)
-        self.Wk = nn.Linear(args.views * args.lsd_dim, args.views * args.lsd_dim, bias = False)
-        self.Wv = nn.Linear(args.views * args.lsd_dim, args.lsd_dim, bias = False)
+        self.W = nn.Linear(args.lsd_dim, 1, bias = False)
 
     def forward(self, X, missing_index):
-        # 原方法
-        # attention = 0
-        # for i in range(self.view_num):
-        #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
-
-        # 下为attention方法
-        output = torch.tensor([])
+        attention = 0
         for i in range(self.view_num):
-            output = torch.concat((output, self.Classifiers[i](X[i]) * missing_index[:, [i]]), 1)
-        # 此时output为(batch size, views*lsd_dim维)
-        output_Q = self.Wq(output)
-        output_K = self.Wk(output)
-        output_V = self.Wv(output)
-        attention = torch.softmax(output_Q.mm(output_K.T), dim = 1).mm(output_V)
+            attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
+        # weight = torch.tensor([])
+        # output = torch.tensor([])
+        # for i in range(self.view_num):
+        #     each = self.Classifiers[i](X[i]) * missing_index[:, [i]]
+        #     output = torch.concat((output, each.unsqueeze(2)), 2)
+        #     weight = torch.concat((weight, self.W(each)), 1)
+        # weight = torch.softmax(weight, dim = 1).unsqueeze(2)
+        # attention = torch.matmul(output, weight).squeeze(2)
+
         return attention
 
 

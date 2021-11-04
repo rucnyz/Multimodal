@@ -99,9 +99,6 @@ def train(net, optim, train_loader, eval_loader, args):
         elapse_time = time_end - time_start
         print('\nFinished in {:.4f}s'.format(elapse_time))
         print("Train Accuracy :" + str(train_accuracy))
-        # TODO 现在我觉得可以先不考虑训练集使用GAN生成数据来填到训练数据的方法，而只在evaluate时将GAN生成数据填进测试数据集，因为训练
-        #  次数肯定会很多(好几百次)，每一次都改变X的话后果未知(不知道会不会让网络参数变得很奇怪)，但测试集我们只是会迭代个几次就差不多了
-        #  ，可能更容易看出GAN生成效果
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
         valid_accuracy = evaluate(net, eval_loader, args)
