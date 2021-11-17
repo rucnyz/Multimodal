@@ -75,6 +75,7 @@ class UKB_Dataset(Dataset):
             args.classes = int(full_labels.max() + 1)  # 类别数量
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
+            self.views = args.views
             for v in range(args.views):  # 8个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集
                 classifier_dims.append(full_data[v].shape[1])
@@ -82,6 +83,7 @@ class UKB_Dataset(Dataset):
             full_labels = full_labels[:int(args.num * 4 / 5)]
             args.classifier_dims = classifier_dims
         elif name == "valid":
+            self.views = args.views
             for v in range(args.views):
                 full_data[v] = full_data[v][int(args.num * 4 / 5):]  # 取20%作为验证集
             full_labels = full_labels[int(args.num * 4 / 5):]
@@ -105,12 +107,18 @@ class UKB_Dataset(Dataset):
     def __len__(self):  # return the size of the dataset，即数据量
         return len(self.full_labels)
 
-    def replace_missing_data(self, args, missing_index):
+    def replace_with_zero(self, args, missing_index):
         if self.name == "train":
             for v in range(args.views):
-                self.full_data[v][missing_index[:int(args.num * 4 / 5)][:, v] == 0] = -1
+                self.full_data[v][missing_index[:int(args.num * 4 / 5)][:, v] == 0] = 0
         elif self.name == "valid":
             for v in range(args.views):
-                self.full_data[v][missing_index[int(args.num * 4 / 5):][:, v] == 0] = -1
+                self.full_data[v][missing_index[int(args.num * 4 / 5):][:, v] == 0] = 0
+
     def set_missing_index(self, missing_index):
         self.missing_index = missing_index
+
+    # 均值替换缺失值
+    def replace_with_mean(self):
+        for v in range(self.views):
+            self.full_data[v][self.missing_index[:,v]==0] = self.full_data[v].mean(dim = 0)
