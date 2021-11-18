@@ -43,7 +43,7 @@ class UCI_Dataset(Dataset):
         # 240 pixel averages in 2 x 3 windows
         # 47 Zernike moments
         # 6 morphological features
-
+        self.views = args.views
         # torch.from_numpy: 从numpy数组创建一个张量，数组和张量共享相同内存．
         self.full_labels = torch.from_numpy(full_labels.astype(np.int64))
         for v in range(args.views):
@@ -71,3 +71,7 @@ class UCI_Dataset(Dataset):
 
     def set_missing_index(self, missing_index):
         self.missing_index = missing_index
+
+    def replace_with_mean(self):
+        for v in range(self.views):
+            self.full_data[v][self.missing_index[:, v] == 0] = self.full_data[v].mean(dim = 0)

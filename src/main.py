@@ -109,7 +109,7 @@ if __name__ == '__main__':
     loss_fn.to(args.device)
 
     # Optimizer
-    optim = eval(args.optim)(net, args.lr_base)
+    optim = eval(args.optim_cca)(net, args.lr_base)
     print("Total number of parameters : " + str(sum([p.numel() for p in net.parameters()]) / 1e3) + "k")
 
     # Create Checkpoint dir

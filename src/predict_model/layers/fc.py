@@ -33,6 +33,7 @@ class MLP(nn.Module):
 
         self.fc = FC(in_size, mid_size, dropout_r = dropout_r, use_relu = use_relu)
         self.linear = nn.Linear(mid_size, out_size)
+        self.softmax = nn.Softmax(dim = 1)
 
     def forward(self, x):
-        return self.linear(self.fc(x))
+        return self.softmax(self.linear(self.fc(x)))

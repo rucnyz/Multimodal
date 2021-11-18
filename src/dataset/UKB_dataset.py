@@ -103,6 +103,7 @@ class UKB_Dataset(Dataset):
         missing_index = self.missing_index[idx]
         # 返回所有数据
         return idx, data, target, missing_index
+        # return list(data.values()), target
 
     def __len__(self):  # return the size of the dataset，即数据量
         return len(self.full_labels)
