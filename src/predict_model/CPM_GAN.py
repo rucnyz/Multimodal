@@ -34,7 +34,6 @@ class Encoder(nn.Module):
         #     weight = torch.concat((weight, self.W(each)), 1)
         # weight = torch.softmax(weight, dim = 1).unsqueeze(2)
         # attention = torch.matmul(output, weight).squeeze(2)
-
         return attention
 
 

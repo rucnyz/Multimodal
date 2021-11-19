@@ -18,6 +18,7 @@ def train(net, optim, train_loader, eval_loader, args):
         )  # args.output默认为ckpt
         logfile.write(str(args))
     best_eval_accuracy = 0  # 最佳验证准确率
+    best_train_accuracy = 0
     decay_count = 0
     train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)
     bce_loss = MyBCELoss(args)
@@ -42,7 +43,7 @@ def train(net, optim, train_loader, eval_loader, args):
                 with torch.no_grad():
                     x_pred = net.decoder(net.encoder(X, missing_index))
                     fill_data(X, x_pred, missing_index)
-                    missing_index = torch.ones(missing_index.shape, device=args.device)
+                    missing_index = torch.ones(missing_index.shape, device = args.device)
             # 产生one-hot编码的标签
             y_onehot = torch.zeros(y.shape[0], args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
@@ -94,6 +95,8 @@ def train(net, optim, train_loader, eval_loader, args):
                     epoch + 1, step + 1, train_images, rec_loss_sum / (step + 1), clf_loss_sum / (step + 1),
                     dec_loss_sum / (step + 1),), end = " ")
         train_accuracy = 100 * train_accuracy / all_num
+        if train_accuracy > best_train_accuracy:
+            best_train_accuracy = train_accuracy
         # 记录时间
         time_end = time.time()
         elapse_time = time_end - time_start
@@ -103,7 +106,22 @@ def train(net, optim, train_loader, eval_loader, args):
         print('Evaluation...    decay times: {}'.format(decay_count))
         valid_accuracy = evaluate(net, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
-        if valid_accuracy >= best_eval_accuracy:
+        if (valid_accuracy > best_eval_accuracy) or (
+                valid_accuracy == best_eval_accuracy and train_accuracy > best_train_accuracy):
+            # Best
+            state = {
+                'state_dict': net.state_dict(),
+                'optim_encoder': optim["encoder"].state_dict(),
+                'optim_decoder': optim["decoder"].state_dict(),
+                'optim_discriminator': optim["discriminator"].state_dict(),
+                'args': args,
+            }
+            torch.save(
+                state,
+                args.output + "/" + args.name +
+                '/best' + str(args.seed) + str(args.dataset) + str(args.missing_rate) + "-" + str(args.loop_times) +
+                '.pkl'
+            )
             best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))
