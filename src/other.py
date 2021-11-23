@@ -1,22 +1,13 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2021/11/19 13:26
 # @Author  : nieyuzhou
-# @File    : retrain.py
+# @File    : other.py
 # @Software: PyCharm
 import argparse
-import glob
-import os
-import warnings
 
-from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader
 
-from train import evaluate_TMC
-from utils.compute_args import compute_args
 from utils.pred_func import *
-from predict_model.model_TMC import TMC
-from dataset.UCI_dataset import UCI_Dataset
-from dataset.multi_view_dataset import Multiview_Dataset
 from utils.preprocess import get_missing_index, missing_data_process
 
 

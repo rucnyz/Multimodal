@@ -31,10 +31,10 @@ def parse_args():
     parser.add_argument('--model', type = str, default = "CPM_GAN", choices = ["CPM", "CPM_GAN", "TMC"])
     # Training
     parser.add_argument('--output', type = str, default = 'ckpt/')
-    parser.add_argument('--name', type = str, default = 'mymodel/')
-    parser.add_argument('--batch_size', type = int, default = 64)  # 200
+    parser.add_argument('--name', type = str, default = 'mymodel_40/')
+    parser.add_argument('--batch_size', type = int, default = 200)  # 200
     parser.add_argument('--num_workers', type = int, default = 0)
-    parser.add_argument('--max_epoch', type = int, default = 300)
+    parser.add_argument('--max_epoch', type = int, default = 200)
     parser.add_argument('--lr_base', type = float, default = 0.0003)
     parser.add_argument('--lr_decay', type = float, default = 0.005)
     parser.add_argument('--lr_decay_times', type = int, default = 2)

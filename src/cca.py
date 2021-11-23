@@ -5,14 +5,16 @@
 # @Software: PyCharm
 import argparse
 import os
+
+from cca_zoo.deepmodels import architectures, DCCAE, DCCA
 from torch import nn
-from cca_zoo.deepmodels import DCCA, architectures, DTCCA
 from torch.utils.data import DataLoader
 
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
 from predict_model.layers.fc import MLP
-from utils.pred_func import accuracy_count
+from utils.loss_func import classification_loss
+from utils.pred_func import accuracy_count, ave
 from utils.preprocess import *
 
 if os.getcwd().endswith("src"):
@@ -43,13 +45,13 @@ train_loader = DataLoader(train_dset, batch_size = 400, shuffle = True,
 eval_loader = DataLoader(eval_dset, batch_size = 400, pin_memory = False)
 # 设置模型和优化器
 encoders = []
-latent_dims = 20
+decoders = []
+latent_dims = 100
 for ld in args.classifier_dims:
     encoders.append(architectures.Encoder(latent_dims = latent_dims, feature_size = ld))
-dcca = DCCA(latent_dims = latent_dims, encoders = encoders)
+    decoders.append(architectures.Decoder(latent_dims = latent_dims, feature_size = ld))
+dcca = DCCAE(latent_dims = latent_dims, encoders = encoders, decoders = decoders, r = 0.2)
 optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.01)
-decoder = MLP(latent_dims, latent_dims, args.classes, 0.1)
-optim_dec = torch.optim.Adam(decoder.parameters(), lr = 0.01)
 bce_loss = nn.BCELoss()
 # 开始训练
 epochs = 100
@@ -57,54 +59,48 @@ epochs = 100
 best_eval_accuracy = 0
 for epoch in range(epochs):
     dcca.train(True)
-    decoder.train(True)
     loss_sum = 0
     train_accuracy = 0
     all_num = 0
     # train
     for step, (idx, X, y, missing_index) in enumerate(train_loader):
-        lsd = dcca(X)
-        loss = dcca.loss(lsd)
-        optim_cca.zero_grad()
-        loss.backward()
-        optim_cca.step()
-        loss_sum += loss.item()
-    for step, (idx, X, y, missing_index) in enumerate(train_loader):
+        # 重建损失
+        loss = dcca.loss(list(X.values()))
+        # 分类损失
         lsd_dim = 0
-        lsd = dcca(X)
+        lsd = dcca(list(X.values()))
         for i in range(args.views):
             lsd_dim += lsd[i]
-        output = decoder(lsd_dim)
         y_onehot = torch.zeros(y.shape[0], args.classes).scatter_(1, y.reshape(
             y.shape[0], 1), 1)
-        loss = bce_loss(output, y_onehot)
-        optim_dec.zero_grad()
+        loss2, _ = classification_loss(y_onehot, y, lsd_dim)
+        optim_cca.zero_grad()
         loss.backward()
-        optim_dec.step()
-        loss_sum += loss.item()
+        loss2.backward()
+        optim_cca.step()
+        loss_sum += loss2.item()
         # 计算准确率
-        predicted = decoder(lsd_dim).argmax(dim = 1)
+        predicted = ave(lsd_dim, lsd_dim, y_onehot)
         train_accuracy += accuracy_count(predicted, y)
         all_num += y.size(0)
     train_accuracy = train_accuracy / all_num
-    print(
-        "[Epoch %2d] loss: %.4f accuracy: %.4f" % (
-            epoch + 1, loss_sum, (train_accuracy)), end = " ")
+    print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, (train_accuracy)))
     # valid
     valid_accuracy = 0
     dcca.train(False)
-    decoder.train(False)
     with torch.no_grad():
         for step, (idx, X, y, missing_index) in enumerate(eval_loader):
             lsd_dim = 0
-            lsd = dcca(X)
+            lsd = dcca(list(X.values()))
+            y_onehot = torch.zeros(y.shape[0], args.classes).scatter_(1, y.reshape(
+                y.shape[0], 1), 1)
             for i in range(args.views):
                 lsd_dim += lsd[i]
-            predicted = decoder(lsd_dim).argmax(dim = 1)
+            predicted = ave(lsd_dim, lsd_dim, y_onehot)
             valid_accuracy += accuracy_count(predicted, y)
             all_num += y.size(0)
         valid_accuracy = valid_accuracy / all_num
-        print("valid accuracy: %.4f" % valid_accuracy, end = " ")
+        print("valid accuracy: %.4f" % valid_accuracy)
         if valid_accuracy >= best_eval_accuracy:
             best_eval_accuracy = valid_accuracy
 print("---------------------------------------------")
