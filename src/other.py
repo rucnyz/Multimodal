@@ -14,6 +14,7 @@ from utils.make_optim import Adam
 from utils.pred_func import *
 from utils.preprocess import get_missing_index, missing_data_process
 from dataset.UKB_dataset import UKB_Dataset
+from dataset.UCI_dataset import UCI_Dataset
 
 
 def parse_args():
@@ -23,8 +24,8 @@ def parse_args():
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
-                        default = 'UKB')
-    parser.add_argument('--missing_rate', type = float, default = 0,
+                        default = 'UCI')
+    parser.add_argument('--missing_rate', type = float, default = 0.5,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
     args = parser.parse_args()
@@ -66,9 +67,9 @@ if __name__ == '__main__':
     # ctrl+p可以查看参数
     epochs = 100
     # Net
-    net = FeatConcat(args)  # choices = ["CPM", "CPM_GAN", "TMC"]
+    net = FeatConcat(args)
     # 优化器
-    optim = Adam(net, 0.01)
+    optim = Adam(net, 0.001)
     # 损失函数
     loss_fn = nn.BCELoss()
     best_eval_accuracy = 0
@@ -94,6 +95,7 @@ if __name__ == '__main__':
         train_accuracy = train_accuracy / all_num
         print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, (train_accuracy)))
         # valid
+        all_num = 0
         valid_accuracy = 0
         net.train(False)
         with torch.no_grad():

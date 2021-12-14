@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'mymodel_40/')
     parser.add_argument('--batch_size', type = int, default = 200)  # 200
     parser.add_argument('--num_workers', type = int, default = 0)
-    parser.add_argument('--max_epoch', type = int, default = 200)
+    parser.add_argument('--max_epoch', type = int, default = 400)
     parser.add_argument('--lr_base', type = float, default = 0.0003)
     parser.add_argument('--lr_decay', type = float, default = 0.005)
     parser.add_argument('--lr_decay_times', type = int, default = 2)

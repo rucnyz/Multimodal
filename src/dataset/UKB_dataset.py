@@ -13,7 +13,7 @@ import numpy as np
 
 
 def preprocess_data():
-    dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
+    dataroot = os.path.join(os.getcwd() + '/../../data' + '/ukb_data')
 
     data1 = pd.read_stata(dataroot + '/【控制变量】depression_covariant.dta')
     data1 = data1[data1['n_eid'] > 0]
@@ -122,4 +122,8 @@ class UKB_Dataset(Dataset):
     # 均值替换缺失值
     def replace_with_mean(self):
         for v in range(self.views):
-            self.full_data[v][self.missing_index[:,v]==0] = self.full_data[v].mean(dim = 0)
+            self.full_data[v][self.missing_index[:, v] == 0] = self.full_data[v].mean(dim = 0)
+
+
+if __name__ == '__main__':
+    preprocess_data()
