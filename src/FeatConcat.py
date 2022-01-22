@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2021/11/19 13:26
 # @Author  : nieyuzhou
-# @File    : other.py
+# @File    : FeatConcat.py
 # @Software: PyCharm
 import argparse
 import os

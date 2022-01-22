@@ -10,6 +10,7 @@ from numpy.random import randint
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 
+
 def missing_data_process(args, train_data, valid_data, missing_index):
     if args.model == "TMC":
         train_data.replace_with_zero(args, missing_index)

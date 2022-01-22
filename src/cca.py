@@ -6,7 +6,7 @@
 import argparse
 import os
 
-from cca_zoo.deepmodels import architectures, DCCAE
+from cca_zoo.deepmodels import architectures, DCCAE, DCCA
 from mvlearn.embed import KMCCA
 from torch import nn
 from torch.utils.data import DataLoader
@@ -51,7 +51,8 @@ latent_dims = 100
 for ld in args.classifier_dims:
     encoders.append(architectures.Encoder(latent_dims = latent_dims, feature_size = ld))
     decoders.append(architectures.Decoder(latent_dims = latent_dims, feature_size = ld))
-dcca = DCCAE(latent_dims = latent_dims, encoders = encoders, decoders = decoders, r = 0.2)
+# dcca = DCCAE(latent_dims = latent_dims, encoders = encoders, decoders = decoders, r = 0.2)
+dcca = DCCA(latent_dims = latent_dims, encoders = encoders, r = 0.2)
 optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.01)
 bce_loss = nn.BCELoss()
 # 开始训练

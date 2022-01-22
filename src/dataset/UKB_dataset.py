@@ -11,7 +11,6 @@ import pandas as pd
 import os
 import numpy as np
 
-
 def preprocess_data():
     dataroot = os.path.join(os.getcwd() + '/../../data' + '/ukb_data')
 
