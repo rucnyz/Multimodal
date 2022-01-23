@@ -1,7 +1,9 @@
 import math
 import os
+import pickle
 import time
 
+import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from utils.loss_func import *
@@ -104,7 +106,7 @@ def train(net, optim, train_loader, eval_loader, args):
         print("Train Accuracy :" + str(train_accuracy))
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy = evaluate(net, eval_loader, args)
+        valid_accuracy, lsds = evaluate(net, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
         if (valid_accuracy > best_eval_accuracy) or (
                 valid_accuracy == best_eval_accuracy and train_accuracy > best_train_accuracy):
@@ -122,6 +124,8 @@ def train(net, optim, train_loader, eval_loader, args):
                 '/best' + str(args.seed) + str(args.dataset) + str(args.missing_rate) + "-" + str(args.loop_times) +
                 '.pkl'
             )
+            file = open('data/representations/CPM_GAN_data.pkl', 'wb')
+            pickle.dump((lsds, eval_loader.dataset.full_labels), file)
             best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))
@@ -437,6 +441,7 @@ def fill_data(X, x_pred, missing_index):
 
 
 def evaluate(net, eval_loader, args):
+    lsds = torch.tensor([])
     accuracy = 0
     all_num = 0
     net.train(False)
@@ -456,12 +461,13 @@ def evaluate(net, eval_loader, args):
                 fill_data(X, x_pred, missing_index)
                 lsd_valid = net.encoder(X, torch.ones(missing_index.shape, device = args.device))
                 x_pred = net.decoder(lsd_valid)
+            lsds = torch.concat(lsds, lsd_valid)
             predicted = ave(lsd_valid, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num
     net.train(True)  # ==net.train()，恢复训练模式
-    return 100 * np.array(accuracy)
+    return 100 * np.array(accuracy), lsds
 
 
 def evaluate_TMC(net, eval_loader, args):

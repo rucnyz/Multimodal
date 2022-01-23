@@ -5,6 +5,7 @@
 # @Software: PyCharm
 import argparse
 import os
+import pickle
 
 from cca_zoo.deepmodels import architectures, DCCAE, DCCA
 from mvlearn.embed import KMCCA
@@ -56,7 +57,7 @@ dcca = DCCA(latent_dims = latent_dims, encoders = encoders, r = 0.2)
 optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.01)
 bce_loss = nn.BCELoss()
 # 开始训练
-epochs = 100
+epochs = 20
 # 测试一下
 best_eval_accuracy = 0
 for epoch in range(epochs):
@@ -86,11 +87,12 @@ for epoch in range(epochs):
         train_accuracy += accuracy_count(predicted, y)
         all_num += y.size(0)
     train_accuracy = train_accuracy / all_num
-    print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, (train_accuracy)))
+    print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, train_accuracy))
     # valid
     valid_accuracy = 0
     all_num = 0
     dcca.train(False)
+    lsds = torch.tensor([])
     with torch.no_grad():
         for step, (idx, X, y, missing_index) in enumerate(eval_loader):
             lsd_dim = 0
@@ -99,12 +101,15 @@ for epoch in range(epochs):
                 y.shape[0], 1), 1)
             for i in range(args.views):
                 lsd_dim += lsd[i]
+            lsds = torch.concat([lsds, lsd_dim])
             predicted = ave(lsd_dim, lsd_dim, y_onehot)
             valid_accuracy += accuracy_count(predicted, y)
             all_num += y.size(0)
         valid_accuracy = valid_accuracy / all_num
         print("valid accuracy: %.4f" % valid_accuracy)
         if valid_accuracy >= best_eval_accuracy:
+            file = open('data/representations/cca_data.pkl', 'wb')
+            pickle.dump((lsds, eval_loader.dataset.full_labels), file)
             best_eval_accuracy = valid_accuracy
 print("---------------------------------------------")
 print("Best evaluate accuracy:{}".format(best_eval_accuracy))
