@@ -124,7 +124,10 @@ def train(net, optim, train_loader, eval_loader, args):
                 '/best' + str(args.seed) + str(args.dataset) + str(args.missing_rate) + "-" + str(args.loop_times) +
                 '.pkl'
             )
-            file = open('data/representations/CPM_GAN_data.pkl', 'wb')
+            file = open('data/representations/CPM_GAN' +
+                        str(args.missing_rate) + '_' +
+                        str(args.loop_times) + '_' +
+                        str(args.GAN_start) + '_' + 'data.pkl', 'wb')
             pickle.dump((lsds, eval_loader.dataset.full_labels), file)
             best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
@@ -461,7 +464,7 @@ def evaluate(net, eval_loader, args):
                 fill_data(X, x_pred, missing_index)
                 lsd_valid = net.encoder(X, torch.ones(missing_index.shape, device = args.device))
                 x_pred = net.decoder(lsd_valid)
-            lsds = torch.concat(lsds, lsd_valid)
+            lsds = torch.concat([lsds, lsd_valid])
             predicted = ave(lsd_valid, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
             all_num += y.size(0)

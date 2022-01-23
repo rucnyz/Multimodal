@@ -54,7 +54,7 @@ for ld in args.classifier_dims:
     decoders.append(architectures.Decoder(latent_dims = latent_dims, feature_size = ld))
 # dcca = DCCAE(latent_dims = latent_dims, encoders = encoders, decoders = decoders, r = 0.2)
 dcca = DCCA(latent_dims = latent_dims, encoders = encoders, r = 0.2)
-optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.01)
+optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.01, weight_decay = 0.01)
 bce_loss = nn.BCELoss()
 # 开始训练
 epochs = 20
