@@ -28,15 +28,15 @@ def parse_args():
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
-    args = parser.parse_args()
-    return args
+    argument = parser.parse_args()
+    return argument
 
 
 # 直接连接
-def feat_concat(X):
+def feat_concat(x):
     concat_X = torch.tensor([])
     for i in range(args.views):
-        concat_X = torch.concat((concat_X, X[i]), dim = 1)
+        concat_X = torch.concat((concat_X, x[i]), dim = 1)
     return concat_X
 
 
