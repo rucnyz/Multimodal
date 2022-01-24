@@ -3,6 +3,7 @@
 # @Author  : nieyuzhou
 # @File    : baselines.py
 # @Software: PyCharm
+import torch
 from cca_zoo.deepmodels import DCCA, architectures
 from matplotlib import pyplot as plt
 from metric_learn import LMNN
@@ -44,8 +45,8 @@ def plot_embedding(x, y_pred, y_true):
     plt.subplot(121)
     plt.scatter(x[:, 0], x[:, 1], c = y_pred)
     plt.title("predict")
-    plt.subplot(121)
 
+    plt.subplot(122)
     plt.scatter(x[:, 0], x[:, 1], c = y_true)
     plt.title("true")
     plt.show()
@@ -111,8 +112,9 @@ if __name__ == '__main__':
 
     for idx1, X, y, missing_index1 in train_loader:
         for idx2, X_valid, y_valid, missing_index2 in eval_loader:
-            processed_X, processed_X_valid = lmnn_transform(X, y, X_valid)
+            processed_X, processed_X_valid = feat_concat(X, y, X_valid)
             best_eval_accuracy = 0
+            best_y_valid_predict = torch.tensor([])
             # 定义网络及其他
             # Net
             net = MultiLayerPerceptron(input_size = args.input_size, classes = args.classes)
@@ -143,5 +145,7 @@ if __name__ == '__main__':
                     print("valid accuracy: %.4f" % valid_accuracy)
                     if valid_accuracy >= best_eval_accuracy:
                         best_eval_accuracy = valid_accuracy
+                        best_y_valid_predict = torch.argmax(output, dim = 1)
             print("---------------------------------------------")
             print("Best evaluate accuracy:{}".format(best_eval_accuracy))
+            plot_embedding(processed_X_valid, best_y_valid_predict, y_valid)
