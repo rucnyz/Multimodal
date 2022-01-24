@@ -11,6 +11,7 @@ class MultiLayerPerceptron(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
+            nn.Dropout(0.2),
             nn.Linear(128, classes),
         )
 

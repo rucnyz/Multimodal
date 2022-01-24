@@ -11,7 +11,7 @@ from cca_zoo.deepmodels import architectures, DCCAE, DCCA
 from mvlearn.embed import KMCCA
 from torch import nn
 from torch.utils.data import DataLoader
-
+from torchmetrics.functional import accuracy
 from dataset.UKB_dataset import UKB_Dataset
 from utils.loss_func import classification_loss
 from utils.pred_func import accuracy_count, ave

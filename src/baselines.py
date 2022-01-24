@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2021/12/15 17:27
 # @Author  : nieyuzhou
-# @File    : LMNN.py
+# @File    : baselines.py
 # @Software: PyCharm
-import torch
+from cca_zoo.deepmodels import DCCA, architectures
 from matplotlib import pyplot as plt
 from metric_learn import LMNN
 from sklearn.manifold import TSNE
@@ -33,20 +33,48 @@ def parse_args():
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
-    args = parser.parse_args()
-    return args
+    argument = parser.parse_args()
+    return argument
+
+
+# 画图
+def plot_embedding(x, y_pred, y_true):
+    x = TSNE(learning_rate = 'auto').fit_transform(x)
+    plt.figure(figsize = (12, 6))
+    plt.subplot(121)
+    plt.scatter(x[:, 0], x[:, 1], c = y_pred)
+    plt.title("predict")
+    plt.subplot(121)
+
+    plt.scatter(x[:, 0], x[:, 1], c = y_true)
+    plt.title("true")
+    plt.show()
+
+
+# 直接连接
+def feat_concat(x, y_true, x_valid):
+    args.input_size = sum(args.classifier_dims)
+    concat_X = torch.tensor([])
+    for i in range(args.views):
+        concat_X = torch.concat((concat_X, x[i]), dim = 1)
+
+    concat_X_valid = torch.tensor([])
+    for i in range(args.views):
+        concat_X_valid = torch.concat((concat_X_valid, x_valid[i]), dim = 1)
+    return concat_X, concat_X_valid
 
 
 # lmnn处理
-def lmnn_transform(X, y, X_valid):
+def lmnn_transform(x, y_true, x_valid):
+    args.input_size = sum(args.classifier_dims)
     concat_X = torch.tensor([])
     for i in range(args.views):
-        concat_X = torch.concat((concat_X, X[i]), dim = 1)
+        concat_X = torch.concat((concat_X, x[i]), dim = 1)
     lmnn = LMNN(k = 5, learn_rate = 1e-6, verbose = False, random_state = 123)
-    lmnn.fit(concat_X, y)
+    lmnn.fit(concat_X, y_true)
     concat_X_valid = torch.tensor([])
     for i in range(args.views):
-        concat_X_valid = torch.concat((concat_X_valid, X_valid[i]), dim = 1)
+        concat_X_valid = torch.concat((concat_X_valid, x_valid[i]), dim = 1)
     return torch.tensor(lmnn.transform(concat_X), dtype = torch.float32), torch.tensor(lmnn.transform(concat_X_valid),
                                                                                        dtype = torch.float32)
 
@@ -81,24 +109,19 @@ if __name__ == '__main__':
     eval_loader = DataLoader(eval_dset, batch_size = args.num - int(args.num * 4 / 5), num_workers = args.num_workers,
                              pin_memory = False)
 
-    # batch_size:一次运行多少个sample
-    # shuffle是打乱顺序: True两次顺序不同，False两次顺序相同，默认为false
-    # num_workers: 采用多进程进行加载，默认为0，即逐进程；>0在windows下会出现错误
-    # drop_last: 总sample除以batch_size除不尽的时候True舍弃
-    # pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them.
-    # ctrl+p可以查看参数
-    epochs = 100
-    # Net
-    net = MultiLayerPerceptron(input_size = sum(args.classifier_dims), classes = args.classes)
-    # 优化器
-    optim = Adam(net, 0.001)
-    # 损失函数
-    loss_fn = nn.CrossEntropyLoss()
-
-    for step, (idx, X, y, missing_index) in enumerate(train_loader):
-        for step, (idx, X_valid, y_valid, missing_index) in enumerate(eval_loader):
+    for idx1, X, y, missing_index1 in train_loader:
+        for idx2, X_valid, y_valid, missing_index2 in eval_loader:
             processed_X, processed_X_valid = lmnn_transform(X, y, X_valid)
             best_eval_accuracy = 0
+            # 定义网络及其他
+            # Net
+            net = MultiLayerPerceptron(input_size = args.input_size, classes = args.classes)
+            # 优化器
+            optim = Adam(net, 0.001)
+            # 损失函数
+            loss_fn = nn.CrossEntropyLoss()
+            # 进入循环
+            epochs = 100
             for epoch in range(epochs):
                 net.train(True)
                 loss_sum = 0
@@ -122,14 +145,3 @@ if __name__ == '__main__':
                         best_eval_accuracy = valid_accuracy
             print("---------------------------------------------")
             print("Best evaluate accuracy:{}".format(best_eval_accuracy))
-
-# x = TSNE(learning_rate = 'auto').fit_transform(X)
-# x_ = TSNE(learning_rate = 'auto').fit_transform(x_new)
-# plt.figure(figsize = (12, 6))
-# plt.subplot(121)
-# plt.scatter(x[:, 0], x[:, 1], c = Y)
-# plt.title("predict")
-# plt.subplot(122)
-# plt.scatter(x_[:, 0], x_[:, 1], c = Y)
-# plt.title("true")
-# plt.show()
