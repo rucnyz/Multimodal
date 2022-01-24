@@ -48,9 +48,9 @@ def preprocess_data():
     data4['disease_inc'][(data4['mci_inc'] == 0) & (data4['ad_inc'] == 1)] = 2
     data4['disease_inc'][(data4['mci_inc'] == 1) & (data4['ad_inc'] == 1)] = np.nan
 
-    data_all = pd.merge(data1, data2, on='n_eid', how='inner')
-    data_all = pd.merge(data_all, data3['n_eid'], on='n_eid', how='inner')
-    data_all = pd.merge(data_all, data4[['disease_inc', 'n_eid']], on='n_eid', how='inner')
+    data_all = pd.merge(data1, data2, on = 'n_eid', how = 'inner')
+    data_all = pd.merge(data_all, data3['n_eid'], on = 'n_eid', how = 'inner')
+    data_all = pd.merge(data_all, data4[['disease_inc', 'n_eid']], on = 'n_eid', how = 'inner')
 
     population = ["age", "sex", "family_history_ad"]
     economy = ["lowincome", "workstatus", "highschool", "isolation2", "deprivation"]
@@ -60,7 +60,7 @@ def preprocess_data():
 
     data_final = data_all[population + economy + lifestyle + ill]
     data_final = data_final.replace('NA', np.nan)
-    data_final = data_final.dropna(axis=0, how='any')  # drop all rows that have any NaN values
+    data_final = data_final.dropna(axis = 0, how = 'any')  # drop all rows that have any NaN values
 
     full_data = {0: data_final[population], 1: data_final[economy], 2: data_final[lifestyle]}
 
@@ -79,20 +79,20 @@ class UKB_AD_Dataset(Dataset):
         self.full_data = dict()
         self.name = name
 
-        full_data = pickle.load(open(dataroot + "/data.pkl", "rb"))
-        full_labels = pickle.load(open(dataroot + "/label.pkl", "rb"))
+        full_data = pickle.load(open(dataroot + "/data_ad.pkl", "rb"))
+        full_labels = pickle.load(open(dataroot + "/label_ad.pkl", "rb"))
 
         if name == "train":
             classifier_dims = []
-            # 数据情况：34240个数据，8个模态，2个类别，每个模态数据有不同个数特征
+            # 数据情况：232962个数据，3个模态，3个类别，每个模态数据有不同个数特征
             args.classes = int(full_labels.max() + 1)  # 类别数量
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
             self.views = args.views
-            for v in range(args.views):  # 8个模态
+            for v in range(args.views):  # 3个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集
                 classifier_dims.append(full_data[v].shape[1])
-            # classifier_dims为[4, 6, 7, 19, 7, 4, 38, 2]，即每个模态的特征数
+            # classifier_dims为[3,5,6]，即每个模态的特征数
             full_labels = full_labels[:int(args.num * 4 / 5)]
             args.classifier_dims = classifier_dims
         elif name == "valid":

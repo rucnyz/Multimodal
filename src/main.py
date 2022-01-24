@@ -1,8 +1,4 @@
 import torch
-print(torch.__version__)
-print(torch.version.cuda)
-print(torch.backends.cudnn.version())
-
 
 import argparse
 import random
@@ -19,7 +15,7 @@ from predict_model.CPM_GAN import CPM_GAN
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
-
+from dataset.UKB_ad_dataset import UKB_AD_Dataset
 
 # python中函数参数直接传地址，不涉及形参问题，所有的args都是一样的！
 
@@ -51,7 +47,8 @@ def parse_args():
     parser.add_argument('--GAN_start', type = int, default = 200)
     # Dataset
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
+                                   'UKB_AD'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
