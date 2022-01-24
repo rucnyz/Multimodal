@@ -1,3 +1,9 @@
+import torch
+print(torch.__version__)
+print(torch.version.cuda)
+print(torch.backends.cudnn.version())
+
+
 import argparse
 import random
 from torch.utils.data import DataLoader
@@ -45,7 +51,7 @@ def parse_args():
     parser.add_argument('--GAN_start', type = int, default = 200)
     # Dataset
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')

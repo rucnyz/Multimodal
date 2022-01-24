@@ -4,6 +4,12 @@
 # @File    : test_ukb.py
 # @Software: PyCharm
 
+import torch
+print(torch.__version__)
+
+print(torch.version.cuda)
+print(torch.backends.cudnn.version())
+
 import pandas as pd
 import os
 import numpy as np
@@ -46,3 +52,4 @@ full_data = {0: data_final[population], 1: data_final[economy], 2: data_final[li
 full_labels = data_final[ill].values
 
 print(data_final, full_data, full_labels)
+
