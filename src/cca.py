@@ -48,7 +48,7 @@ eval_loader = DataLoader(eval_dset, batch_size = 400, pin_memory = False)
 # 设置模型和优化器
 encoders = []
 decoders = []
-latent_dims = 100
+latent_dims = 128
 for ld in args.classifier_dims:
     encoders.append(architectures.Encoder(latent_dims = latent_dims, feature_size = ld))
     decoders.append(architectures.Decoder(latent_dims = latent_dims, feature_size = ld))

@@ -8,8 +8,8 @@ import os
 
 from torch import nn
 from torch.utils.data import DataLoader
-
-from predict_model.net import FeatConcat
+from torchmetrics import Accuracy
+from predict_model.net import MultiLayerPerceptron
 from utils.make_optim import Adam
 from utils.pred_func import *
 from utils.preprocess import get_missing_index, missing_data_process
@@ -25,18 +25,26 @@ def parse_args():
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
                         default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0.5,
+    parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
     args = parser.parse_args()
     return args
 
 
+# 直接连接
+def feat_concat(X):
+    concat_X = torch.tensor([])
+    for i in range(args.views):
+        concat_X = torch.concat((concat_X, X[i]), dim = 1)
+    return concat_X
+
+
 if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_Dataset"
+    args.dataloader = "UCI_Dataset"
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -56,9 +64,12 @@ if __name__ == '__main__':
     eval_dset.replace_with_mean()
 
     # DataLoader: DataSet的打包
-    train_loader = DataLoader(train_dset, 400, num_workers = args.num_workers, shuffle = True,
+    train_loader = DataLoader(train_dset, batch_size = int(args.num * 4 / 5), num_workers = args.num_workers,
+                              shuffle = True,
                               pin_memory = False)
-    eval_loader = DataLoader(eval_dset, 400, num_workers = args.num_workers, pin_memory = False)
+    eval_loader = DataLoader(eval_dset, batch_size = args.num - int(args.num * 4 / 5), num_workers = args.num_workers,
+                             pin_memory = False)
+
     # batch_size:一次运行多少个sample
     # shuffle是打乱顺序: True两次顺序不同，False两次顺序相同，默认为false
     # num_workers: 采用多进程进行加载，默认为0，即逐进程；>0在windows下会出现错误
@@ -67,11 +78,11 @@ if __name__ == '__main__':
     # ctrl+p可以查看参数
     epochs = 100
     # Net
-    net = FeatConcat(args)
+    net = MultiLayerPerceptron(input_size = sum(args.classifier_dims), classes = args.classes)
     # 优化器
     optim = Adam(net, 0.001)
     # 损失函数
-    loss_fn = nn.BCELoss()
+    loss_fn = nn.CrossEntropyLoss()
     best_eval_accuracy = 0
     for epoch in range(epochs):
         net.train(True)
@@ -79,32 +90,29 @@ if __name__ == '__main__':
         train_accuracy = 0
         all_num = 0
         # train
+        accuracy = Accuracy()
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
-            # 重建损失
-            output = net(X)
-            predicted = torch.argmax(output, dim = 1)
-            y_onehot = torch.zeros(y.shape[0], args.classes).scatter_(1, y.reshape(
-                y.shape[0], 1), 1)
-            loss = loss_fn(output, y_onehot)
+            processed_X = feat_concat(X)
+            output = net(processed_X)
+            loss = loss_fn(output, y)
             optim.zero_grad()
             loss.backward()
             optim.step()
             # 计算准确率
-            train_accuracy += accuracy_count(predicted, y)
-            all_num += y.size(0)
-        train_accuracy = train_accuracy / all_num
-        print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, (train_accuracy)))
+            train_accuracy = accuracy(output, y)
+        train_accuracy = accuracy.compute().data
+        print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, train_accuracy))
         # valid
         all_num = 0
         valid_accuracy = 0
         net.train(False)
+        accuracy = Accuracy()
         with torch.no_grad():
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
-                output = net(X)
-                predicted = torch.argmax(output, dim = 1)
-                valid_accuracy += accuracy_count(predicted, y)
-                all_num += y.size(0)
-            valid_accuracy = valid_accuracy / all_num
+                processed_X = feat_concat(X)
+                output = net(processed_X)
+                valid_accuracy = accuracy(output, y)
+            valid_accuracy = accuracy.compute().data
             print("valid accuracy: %.4f" % valid_accuracy)
             if valid_accuracy >= best_eval_accuracy:
                 best_eval_accuracy = valid_accuracy

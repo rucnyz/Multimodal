@@ -7,7 +7,7 @@ import torch
 
 
 def Adam(net, lr):
-    return torch.optim.Adam(net.parameters(), lr = lr, weight_decay = 1e-5)
+    return torch.optim.Adam(net.parameters(), lr = lr, weight_decay = 3e-6)
 
 
 def MixAdam(net, lr):
