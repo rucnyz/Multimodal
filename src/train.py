@@ -3,7 +3,6 @@ import os
 import pickle
 import time
 
-import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from utils.loss_func import *
@@ -106,7 +105,7 @@ def train(net, optim, train_loader, eval_loader, args):
         print("Train Accuracy :" + str(train_accuracy))
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy, lsds = evaluate(net, eval_loader, args)
+        valid_accuracy, lsds = evaluate(net, lsd_train, y_onehot, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
         if (valid_accuracy > best_eval_accuracy) or (
                 valid_accuracy == best_eval_accuracy and train_accuracy > best_train_accuracy):
@@ -443,8 +442,7 @@ def fill_data(X, x_pred, missing_index):
         X[i][missing_index[:, i] == 0] = x_pred[i][missing_index[:, i] == 0]
 
 
-def evaluate(net, eval_loader, args):
-    lsds = torch.tensor([])
+def evaluate(net, lsd_train, y_onehot, eval_loader, args):
     accuracy = 0
     all_num = 0
     net.train(False)
@@ -455,8 +453,6 @@ def evaluate(net, eval_loader, args):
             y = y.to(args.device)
             missing_index = missing_index.to(args.device)
             # 生成one_hot编码的label来进行后续分类
-            y_onehot = torch.zeros(y.shape[0], args.classes, device = args.device).scatter_(1, y.reshape(
-                y.shape[0], 1), 1)
             lsd_valid = net.encoder(X, missing_index)  # (1600，128)
             x_pred = net.decoder(lsd_valid)
             # 将预测值补充到原数据中,loop_times决定了跑几个来回
@@ -464,13 +460,12 @@ def evaluate(net, eval_loader, args):
                 fill_data(X, x_pred, missing_index)
                 lsd_valid = net.encoder(X, torch.ones(missing_index.shape, device = args.device))
                 x_pred = net.decoder(lsd_valid)
-            lsds = torch.concat([lsds, lsd_valid])
-            predicted = ave(lsd_valid, lsd_valid, y_onehot)
+            predicted = ave(lsd_train, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num
     net.train(True)  # ==net.train()，恢复训练模式
-    return 100 * np.array(accuracy), lsds
+    return 100 * np.array(accuracy), lsd_valid
 
 
 def evaluate_TMC(net, eval_loader, args):

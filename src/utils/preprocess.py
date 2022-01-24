@@ -26,8 +26,9 @@ def missing_data_process(args, train_data, valid_data, missing_index):
         # 也是不同的，更不用说有的非整数训练集最后一个batch大小还和前面不一样，而且这样分成多个矩阵运算也会使得速度更慢，大矩阵运算相比于多个
         # 小矩阵运算绝对会快很多很多很多，因为可以并行)
     elif args.model == "CPM_GAN":
-        args.train_batch_size = args.batch_size
-        args.valid_batch_size = args.batch_size
+        args.batch_size = args.num
+        args.train_batch_size = int(args.num * 4 / 5)
+        args.valid_batch_size = args.num - int(args.num * 4 / 5)
     train_data.set_missing_index(missing_index[:int(args.num * 4 / 5)])
     valid_data.set_missing_index(missing_index[int(args.num * 4 / 5):])
 
