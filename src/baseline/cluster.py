@@ -17,17 +17,17 @@ if os.getcwd().endswith("src"):
     os.chdir("../")
 
 
-def cluster_accuracy(y_pred, y_true):
+def cluster_accuracy(y_predict, y_true):
     """
     调用匈牙利算法，实现最佳类别的分配
     """
-    D = max(y_pred.max(), y_true.max()) + 1
+    D = max(y_predict.max(), y_true.max()) + 1
     cost = np.zeros((D, D), dtype = np.int64)
-    for i in range(y_pred.size):
-        cost[y_pred[i], y_true[i]] += 1
+    for i in range(y_predict.size):
+        cost[y_predict[i], y_true[i]] += 1
     ind = linear_sum_assignment(np.max(cost) - cost)
     ind = np.array(ind).T
-    return sum([cost[i, j] for i, j in ind]) * 1.0 / y_pred.size
+    return sum([cost[i, j] for i, j in ind]) * 1.0 / y_predict.size
 
 
 random_state = 100
