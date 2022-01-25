@@ -9,10 +9,10 @@ class MultiLayerPerceptron(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(input_size, 128),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(128, 256),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(128, classes),
+            nn.Linear(256, classes),
         )
 
     def forward(self, x):

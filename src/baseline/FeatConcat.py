@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # drop_last: 总sample除以batch_size除不尽的时候True舍弃
     # pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them.
     # ctrl+p可以查看参数
-    epochs = 100
+    epochs = 200
     # Net
     net = MultiLayerPerceptron(input_size = sum(args.classifier_dims), classes = args.classes)
     # 优化器
@@ -98,6 +98,7 @@ if __name__ == '__main__':
             optim.zero_grad()
             loss.backward()
             optim.step()
+            loss_sum += loss.item()
             # 计算准确率
             train_accuracy = accuracy(output, y)
         train_accuracy = accuracy.compute().data
