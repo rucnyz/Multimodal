@@ -82,7 +82,7 @@ def train(net, optim, train_loader, eval_loader, args):
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             clf_loss, predicted = classification_loss(y_onehot, y, lsd_train)
             optim["encoder"].zero_grad()
-            (0.1 * rec_loss + clf_loss + 10 * dec_loss).backward()
+            (0.1* rec_loss + clf_loss +  10*dec_loss).backward()
             optim["encoder"].step()
             # ---------------------------------------
             rec_loss_sum += rec_loss.item()

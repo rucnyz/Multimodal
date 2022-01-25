@@ -5,11 +5,13 @@
 # @Software: PyCharm
 import pickle
 
+import torch
 from torch.utils.data import Dataset
 from utils.preprocess import *
 import pandas as pd
 import os
 import numpy as np
+
 
 def preprocess_data():
     dataroot = os.path.join(os.getcwd() + '/../../data' + '/ukb_data')
@@ -74,6 +76,7 @@ class UKB_Dataset(Dataset):
             args.classes = int(full_labels.max() + 1)  # 类别数量
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
+            args.weight = torch.tensor([1, full_labels.shape[0] / full_labels.sum()],dtype = torch.float32)
             self.views = args.views
             for v in range(args.views):  # 8个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集

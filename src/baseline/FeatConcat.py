@@ -44,7 +44,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UCI_Dataset"
+    args.dataloader = "UKB_Dataset"
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     # 优化器
     optim = Adam(net, 0.001)
     # 损失函数
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss(weight = args.weight)
     best_eval_accuracy = 0
     for epoch in range(epochs):
         net.train(True)

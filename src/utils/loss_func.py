@@ -99,7 +99,10 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 也就是梯度下降在这里有两个目标同时作为目标，可以加快速度
     # relu在这里没什么意义，因为所有值都肯定大于等于0
     # theta + predicted_max_value和predicted_y有梯度，theta是逻辑判断无法计算梯度，因此有无theta对梯度计算没有影响
-    return (relu(theta + predicted_max_value - predicted_y)).sum(), predicted.squeeze(1)  # (1600,1)-->(1,1600)
+    # 增加样本权重
+    class_weight = torch.where(y == 0, 1, int(y.shape[0] / y.sum())).unsqueeze(dim = 1)
+    loss = (predicted_max_value - predicted_y) * class_weight
+    return (relu(theta + loss)).sum(), predicted.squeeze(1)
 
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
