@@ -90,6 +90,8 @@ class UKB_AD_Dataset(Dataset):
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
             self.views = args.views
+            np.bincount(full_labels)
+            args.weight = torch.tensor(np.bincount(full_labels).max() / np.bincount(full_labels), dtype = torch.float32)
             for v in range(args.views):  # 3个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集
                 classifier_dims.append(full_data[v].shape[1])

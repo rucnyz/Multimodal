@@ -121,7 +121,7 @@ if __name__ == '__main__':
             # 优化器
             optim = Adam(net, 0.001)
             # 损失函数
-            loss_fn = nn.CrossEntropyLoss()
+            loss_fn = nn.CrossEntropyLoss(weight = args.weight)
             # 进入循环
             epochs = 100
             for epoch in range(epochs):
