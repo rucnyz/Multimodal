@@ -102,18 +102,20 @@ def classification_loss(label_onehot, y, lsd_temp):
     # 增加样本权重
     class_weight = torch.where(y == 0, 1, int(y.shape[0] / y.sum())).unsqueeze(dim = 1)
     loss = (predicted_max_value - predicted_y) * class_weight
-    return (relu(theta + loss)).sum(), predicted.squeeze(1)
+    return (relu(theta + loss)).mean(), predicted.squeeze(1)
 
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
 # (因为在矩阵运算时缺失索引为0，乘积后这一项就0了，sum后就没算它)
-# 其实这个也可以和classfication_loss一起放到损失函数那个文件里，但忘了  # 已调整
+# 其实这个也可以和classfication_loss一起放到损失函数那个文件里，但忘了
 def reconstruction_loss(view_num, x_pred, x, missing_index):
     loss = 0
+    all_num = 0
     for num in range(view_num):
         # 注意这里的改动会使得其余模型均无法使用
         loss += (torch.pow((x_pred[num] - x[num]), 2.0) * missing_index[:, [num]]).sum()
-    return loss
+        all_num += x[num].shape[-1] * x[num].shape[0]
+    return loss / all_num
 
 
 class MyBCELoss(nn.Module):
