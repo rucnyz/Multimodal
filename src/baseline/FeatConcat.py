@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
+    parser.add_argument('--lr', type = float, default = 0.0006)
     argument = parser.parse_args()
     return argument
 
@@ -70,17 +71,11 @@ if __name__ == '__main__':
     eval_loader = DataLoader(eval_dset, batch_size = args.num - int(args.num * 4 / 5), num_workers = args.num_workers,
                              pin_memory = False)
 
-    # batch_size:一次运行多少个sample
-    # shuffle是打乱顺序: True两次顺序不同，False两次顺序相同，默认为false
-    # num_workers: 采用多进程进行加载，默认为0，即逐进程；>0在windows下会出现错误
-    # drop_last: 总sample除以batch_size除不尽的时候True舍弃
-    # pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them.
-    # ctrl+p可以查看参数
     epochs = 200
     # Net
     net = MultiLayerPerceptron(input_size = sum(args.classifier_dims), classes = args.classes)
     # 优化器
-    optim = Adam(net, 0.001)
+    optim = Adam(net, args.lr)
     # 损失函数
     loss_fn = nn.CrossEntropyLoss(weight = args.weight)
     best_eval_accuracy = 0

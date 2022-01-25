@@ -31,38 +31,7 @@ class CPM(nn.Module):
         # 而且该网络的输入是lsd_dim，输出是训练数据各模态的特征数
         # 另外这里用ModuleList是类似于list的东西，但不要使用list，因为那样net.parameters()将无法将此识别为网络参数，在优化器传入参数的
         # 时候会有麻烦。ModuleList起到的是注册参数的作用
-        # ModuleList(
-        #   (0): Sequential(
-        #     (lin0): Linear(in_features=128, out_features=150, bias=True)
-        #     (lin1): Linear(in_features=150, out_features=76, bias=True)
-        #     (drop1): Dropout(p=0.1, inplace=False)
-        #   )
-        #   (1): Sequential(
-        #     (lin0): Linear(in_features=128, out_features=150, bias=True)
-        #     (lin1): Linear(in_features=150, out_features=216, bias=True)
-        #     (drop1): Dropout(p=0.1, inplace=False)
-        #   )
-        #   (2): Sequential(
-        #     (lin0): Linear(in_features=128, out_features=150, bias=True)
-        #     (lin1): Linear(in_features=150, out_features=64, bias=True)
-        #     (drop1): Dropout(p=0.1, inplace=False)
-        #   )
-        #   (3): Sequential(
-        #     (lin0): Linear(in_features=128, out_features=150, bias=True)
-        #     (lin1): Linear(in_features=150, out_features=240, bias=True)
-        #     (drop1): Dropout(p=0.1, inplace=False)
-        #   )
-        #   (4): Sequential(
-        #     (lin0): Linear(in_features=128, out_features=150, bias=True)
-        #     (lin1): Linear(in_features=150, out_features=47, bias=True)
-        #     (drop1): Dropout(p=0.1, inplace=False)
-        #   )
-        #   (5): Sequential(
-        #     (lin0): Linear(in_features=128, out_features=150, bias=True)
-        #     (lin1): Linear(in_features=150, out_features=6, bias=True)
-        #     (drop1): Dropout(p=0.1, inplace=False)
-        #   )
-        # )
+
 
         self.lsd_train = self.lsd_init('train')
         self.lsd_valid = self.lsd_init('valid')

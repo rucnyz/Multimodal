@@ -3,6 +3,7 @@
 # @Author  : nieyuzhou
 # @File    : CPM_GAN.py
 # @Software: PyCharm
+from torch.nn import MultiheadAttention
 
 from generate_model.GAN import *
 from utils.loss_func import *
@@ -20,21 +21,25 @@ class Encoder(nn.Module):
                 nn.Linear(150, args.lsd_dim),
                 nn.Dropout(p = 0.2)  # 解决梯度爆炸问题
             ) for i in range(self.view_num)])
-        self.W = nn.Linear(args.lsd_dim, 1, bias = False)
+        self.Q = nn.Linear(args.lsd_dim, args.lsd_dim, bias = False)
+        self.K = nn.Linear(args.lsd_dim, args.lsd_dim, bias = False)
+        self.V = nn.Linear(args.lsd_dim, args.lsd_dim, bias = False)
+        self.attn = MultiheadAttention(args.lsd_dim, 2, batch_first = True)
 
     def forward(self, X, missing_index):
-        attention = 0
-        for i in range(self.view_num):
-            attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
-        # weight = torch.tensor([])
-        # output = torch.tensor([])
+        # attention = 0
         # for i in range(self.view_num):
-        #     each = self.Classifiers[i](X[i]) * missing_index[:, [i]]
-        #     output = torch.concat((output, each.unsqueeze(2)), 2)
-        #     weight = torch.concat((weight, self.W(each)), 1)
-        # weight = torch.softmax(weight, dim = 1).unsqueeze(2)
-        # attention = torch.matmul(output, weight).squeeze(2)
-        return attention
+        #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
+        Q_vector = torch.tensor([])
+        K_vector = torch.tensor([])
+        V_vector = torch.tensor([])
+        for i in range(self.view_num):
+            each = self.Classifiers[i](X[i]) * missing_index[:, [i]]
+            Q_vector = torch.concat((Q_vector, self.Q(each).unsqueeze(1)), 1)
+            K_vector = torch.concat((K_vector, self.K(each).unsqueeze(1)), 1)
+            V_vector = torch.concat((V_vector, self.V(each).unsqueeze(1)), 1)
+        output, _ = self.attn(Q_vector, K_vector, V_vector, need_weights = False)
+        return output.sum(dim=1)
 
 
 class CPM_GAN(nn.Module):
