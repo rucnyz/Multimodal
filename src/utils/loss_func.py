@@ -7,7 +7,6 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn.functional import relu
 
 
 def KL(alpha, c):
@@ -59,16 +58,21 @@ class AdjustedCrossEntropyLoss(nn.Module):
         self.classes = args.classes
 
     def forward(self, predicted, y, global_step):
-        loss = 0
+        loss = torch.tensor([])
         for v_num in range(self.views + 1):
             loss += ce_loss(y, predicted[v_num], self.classes, global_step, self.lambda_epochs)
         loss = torch.mean(loss)  # batch_size个sample的loss均值
         return loss
 
 
+def callable(a, weight):
+    a
+    return a
+
+
 # 把隐藏层通过一些计算，算出来预测结果，然后计算预测和真实之间的误差
 # 难点在于他不是常规的去前向传播，而是用了聚类的思路，使得相同标签的元素在特征空间上越来越近，不同标签的元素越来越远
-def classification_loss(label_onehot, y, lsd_temp):
+def classification_loss(label_onehot, y, lsd_temp, weight):
     # lsd_temp 隐藏层数据(N,lsd_dim)  # xavier_init(int(self.num * 4 / 5), self.lsd_dim).requires_grad_(True)
     # 一个聚类的思路
     train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,128)*(128,1600) = (1600,1600)  含负数
@@ -86,7 +90,6 @@ def classification_loss(label_onehot, y, lsd_temp):
     predicted = torch.max(predicted_full_values, dim = 1)[1]  # 每个sample属于的类
     predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]  # 每个sample预测的属于的类的相似度（最大）
     predicted = predicted.reshape([predicted.shape[0], 1])  # (1600,1)
-    theta = torch.ne(y.reshape([y.shape[0], 1]), predicted)  # not equal to 每个样本是否被正确预测 (1600,1)
     predicted_y_value = predicted_full_values * label_onehot  # (1600,10)*(1600,10)=(1600,10)每个元素对应相乘，不是矩阵乘法
     predicted_y = predicted_y_value.sum(axis = 1)  # 每个sample真实的属于的类的相似度
     predicted_max_value = predicted_max_value.reshape([predicted_max_value.shape[0], 1])
@@ -100,9 +103,9 @@ def classification_loss(label_onehot, y, lsd_temp):
     # relu在这里没什么意义，因为所有值都肯定大于等于0
     # theta + predicted_max_value和predicted_y有梯度，theta是逻辑判断无法计算梯度，因此有无theta对梯度计算没有影响
     # 增加样本权重
-    class_weight = torch.where(y == 0, 1, int(y.shape[0] / y.sum())).unsqueeze(dim = 1)
+    class_weight = y.type(torch.float32).apply_(lambda a: weight[int(a)])
     loss = (predicted_max_value - predicted_y) * class_weight
-    return (relu(theta + loss)).mean(), predicted.squeeze(1)
+    return loss.mean(), predicted.squeeze(1)
 
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用

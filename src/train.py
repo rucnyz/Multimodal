@@ -80,7 +80,7 @@ def train(net, optim, train_loader, eval_loader, args):
             # 计算未缺失模态的重建损失和分类损失
             # x_pred-->decoder & encoder  lsd_train-->encoder
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
-            clf_loss, predicted = classification_loss(y_onehot, y, lsd_train)
+            clf_loss, predicted = classification_loss(y_onehot, y, lsd_train, args.weight)
             optim["encoder"].zero_grad()
             (rec_loss + clf_loss + dec_loss).backward()
             optim["encoder"].step()
