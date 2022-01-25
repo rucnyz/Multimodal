@@ -414,17 +414,17 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
-            loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx])
+            loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight)
             optim[1].zero_grad()
             loss1.backward()
             loss2.backward()
             optim[1].step()
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
-        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx])
+        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx], args.weight)
         rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
         print(
-            "\r[Epoch %2d][Step %4d/%4d] Reconstruction Loss: %.4f, Classification Loss = %.4f, Lr: %.2e, %4d m remaining"
+            "\r[Epoch %2d][Step %4d/%4d] Reconstruction: %.4f, Classification: %.4f, Lr: %.2e, %4d m remaining"
             % (epoch + 1, step + 1, train_images, rec_loss, clf_loss,
                *[group['lr'] for group in optim[1].param_groups],
                ((time.time() - time_start) / (step + 1)) * ((len(train_loader.dataset) / args.batch_size) - step) / 60),
@@ -437,9 +437,9 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
 
 
 # 将X中的缺失数据用x_pred即生成数据来代替
-def fill_data(X, x_pred, missing_index):
-    for i in range(len(X)):
-        X[i][missing_index[:, i] == 0] = x_pred[i][missing_index[:, i] == 0]
+def fill_data(x, x_pred, missing_index):
+    for i in range(len(x)):
+        x[i][missing_index[:, i] == 0] = x_pred[i][missing_index[:, i] == 0]
 
 
 def evaluate(net, lsd_train, y_onehot, eval_loader, args):

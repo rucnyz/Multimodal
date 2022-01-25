@@ -5,7 +5,7 @@
 # @Software: PyCharm
 # loss function
 import torch
-import torch.nn.functional as F
+from torch.nn.functional import one_hot
 from torch import nn
 
 
@@ -26,7 +26,7 @@ def KL(alpha, c):
 def ce_loss(p, alpha, c, global_step, annealing_step):
     S = torch.sum(alpha, dim = 1, keepdim = True)
     E = alpha - 1
-    label = F.one_hot(p, num_classes = c)
+    label = one_hot(p, num_classes = c)
     A = torch.sum(label * (torch.digamma(S) - torch.digamma(alpha)), dim = 1, keepdim = True)
 
     annealing_coef = min(1, global_step / annealing_step)
@@ -41,7 +41,7 @@ def mse_loss(p, alpha, c, global_step, annealing_step = 1):
     S = torch.sum(alpha, dim = 1, keepdim = True)
     E = alpha - 1
     m = alpha / S
-    label = F.one_hot(p, num_classes = c)
+    label = one_hot(p, num_classes = c)
     A = torch.sum((label - m) ** 2, dim = 1, keepdim = True)
     B = torch.sum(alpha * (S - alpha) / (S * S * (S + 1)), dim = 1, keepdim = True)
     annealing_coef = min(1, global_step / annealing_step)
