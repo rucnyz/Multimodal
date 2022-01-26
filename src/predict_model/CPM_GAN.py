@@ -14,6 +14,8 @@ class Encoder(nn.Module):
     def __init__(self, args):
         super(Encoder, self).__init__()
         self.view_num = args.views
+        self.device = args.device
+        self.views = args.views
         self.Classifiers = nn.ModuleList(
             [nn.Sequential(
                 nn.Linear(args.classifier_dims[i], 150),
@@ -30,9 +32,12 @@ class Encoder(nn.Module):
         # attention = 0
         # for i in range(self.view_num):
         #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
-        Q_vector = torch.tensor([])
-        K_vector = torch.tensor([])
-        V_vector = torch.tensor([])
+        for i in range(self.views):
+            X[i] = X[i].to(self.device)
+        missing_index = missing_index.to(self.device)
+        Q_vector = torch.tensor([]).to(self.device)
+        K_vector = torch.tensor([]).to(self.device)
+        V_vector = torch.tensor([]).to(self.device)
         for i in range(self.view_num):
             each = self.Classifiers[i](X[i]) * missing_index[:, [i]]
             Q_vector = torch.cat((Q_vector, self.Q(each).unsqueeze(1)), 1)

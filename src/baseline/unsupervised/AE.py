@@ -75,6 +75,7 @@ if __name__ == '__main__':
     args.dataloader = "UKB_Dataset"
     args.lsd_dim = 128
     args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # args.device = "cpu"
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -100,6 +101,7 @@ if __name__ == '__main__':
     epochs = 200
     # Net
     net = AE(args)
+    net.to(args.device)
     # 优化器
     optim = Adam(net, args.lr)
 
@@ -113,6 +115,11 @@ if __name__ == '__main__':
         # train
         accuracy = Accuracy()
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
+            # 使用cuda或者cpu设备
+            for i in range(args.views):
+                X[i] = X[i].to(args.device)
+            y = y.to(args.device)
+            missing_index = missing_index.to(args.device)
             # 产生one-hot编码的标签
             y_onehot = torch.zeros(y.shape[0], args.classes, device=args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
@@ -136,6 +143,11 @@ if __name__ == '__main__':
         accuracy = Accuracy()
         with torch.no_grad():
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
+                # 使用cuda或者cpu设备
+                for i in range(args.views):
+                    X[i] = X[i].to(args.device)
+                y = y.to(args.device)
+                missing_index = missing_index.to(args.device)
                 # 产生one-hot编码的标签
                 y_onehot = torch.zeros(y.shape[0], args.classes, device=args.device).scatter_(1, y.reshape(
                     y.shape[0], 1), 1)
