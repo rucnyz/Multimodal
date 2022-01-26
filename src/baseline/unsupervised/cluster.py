@@ -14,7 +14,7 @@ from sklearn.metrics import adjusted_mutual_info_score
 from sklearn.manifold import TSNE
 
 if os.getcwd().endswith("src"):
-    os.chdir("../")
+    os.chdir("../../")
 
 
 def cluster_accuracy(y_predict, y_true):

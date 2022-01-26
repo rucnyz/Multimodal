@@ -4,7 +4,7 @@
 # @File    : baselines.py
 # @Software: PyCharm
 import torch
-from cca_zoo.deepmodels import DCCA, architectures
+# from cca_zoo.deepmodels import DCCA, architectures
 from matplotlib import pyplot as plt
 from metric_learn import LMNN
 from sklearn.manifold import TSNE
@@ -21,6 +21,7 @@ from utils.pred_func import *
 from utils.preprocess import get_missing_index, missing_data_process
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.UCI_dataset import UCI_Dataset
+from dataset.UKB_ad_dataset import UKB_AD_Dataset
 
 
 def parse_args():
@@ -29,7 +30,7 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB'],
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
@@ -38,7 +39,7 @@ def parse_args():
     return argument
 
 
-# 画图
+# 画图 高维数据可视化
 def plot_embedding(x, y_pred, y_true):
     x = TSNE(learning_rate = 'auto').fit_transform(x)
     plt.figure(figsize = (12, 6))
@@ -57,11 +58,11 @@ def feat_concat(x, y_true, x_valid):
     args.input_size = sum(args.classifier_dims)
     concat_X = torch.tensor([])
     for i in range(args.views):
-        concat_X = torch.concat((concat_X, x[i]), dim = 1)
+        concat_X = torch.cat((concat_X, x[i]), dim = 1)
 
     concat_X_valid = torch.tensor([])
     for i in range(args.views):
-        concat_X_valid = torch.concat((concat_X_valid, x_valid[i]), dim = 1)
+        concat_X_valid = torch.cat((concat_X_valid, x_valid[i]), dim = 1)
     return concat_X, concat_X_valid
 
 
@@ -70,21 +71,21 @@ def lmnn_transform(x, y_true, x_valid):
     args.input_size = sum(args.classifier_dims)
     concat_X = torch.tensor([])
     for i in range(args.views):
-        concat_X = torch.concat((concat_X, x[i]), dim = 1)
+        concat_X = torch.cat((concat_X, x[i]), dim = 1)
     lmnn = LMNN(k = 5, learn_rate = 1e-6, verbose = False, random_state = 123)
     lmnn.fit(concat_X, y_true)
     concat_X_valid = torch.tensor([])
     for i in range(args.views):
-        concat_X_valid = torch.concat((concat_X_valid, x_valid[i]), dim = 1)
+        concat_X_valid = torch.cat((concat_X_valid, x_valid[i]), dim = 1)
     return torch.tensor(lmnn.transform(concat_X), dtype = torch.float32), torch.tensor(lmnn.transform(concat_X_valid),
                                                                                        dtype = torch.float32)
 
 
 if __name__ == '__main__':
     if os.getcwd().endswith("src"):
-        os.chdir("../")
+        os.chdir("../../")
     args = parse_args()
-    args.dataloader = "UCI_Dataset"
+    args.dataloader = "UKB_Dataset"
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)

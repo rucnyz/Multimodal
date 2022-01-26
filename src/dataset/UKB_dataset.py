@@ -63,6 +63,11 @@ class UKB_Dataset(Dataset):
         self.missing_index = None
         assert name in ['train', 'valid', 'test']  # assert:断言函数，不满足条件则直接触发异常，不必执行接下来的代码
 
+        # dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
+        if os.getcwd().endswith("src"):
+            os.chdir("../")
+        elif os.getcwd().endswith("supervised") or os.getcwd().endswith("unsupervised"):
+            os.chdir("../../../")
         dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
 
         self.full_data = dict()

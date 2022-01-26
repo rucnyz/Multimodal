@@ -18,7 +18,7 @@ from utils.pred_func import accuracy_count, ave
 from utils.preprocess import *
 
 if os.getcwd().endswith("src"):
-    os.chdir("../")
+    os.chdir("../../")
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--missing_rate', type = float, default = 0,
