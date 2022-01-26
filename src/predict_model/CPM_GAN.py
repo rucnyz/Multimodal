@@ -35,9 +35,9 @@ class Encoder(nn.Module):
         V_vector = torch.tensor([])
         for i in range(self.view_num):
             each = self.Classifiers[i](X[i]) * missing_index[:, [i]]
-            Q_vector = torch.concat((Q_vector, self.Q(each).unsqueeze(1)), 1)
-            K_vector = torch.concat((K_vector, self.K(each).unsqueeze(1)), 1)
-            V_vector = torch.concat((V_vector, self.V(each).unsqueeze(1)), 1)
+            Q_vector = torch.cat((Q_vector, self.Q(each).unsqueeze(1)), 1)
+            K_vector = torch.cat((K_vector, self.K(each).unsqueeze(1)), 1)
+            V_vector = torch.cat((V_vector, self.V(each).unsqueeze(1)), 1)
         output, _ = self.attn(Q_vector, K_vector, V_vector, need_weights = False)
         return output.sum(dim=1)
 

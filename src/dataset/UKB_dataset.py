@@ -135,6 +135,7 @@ class UKB_Dataset(Dataset):
 
 if __name__ == '__main__':
     full_data, full_labels = preprocess_data()
+    full_labels = full_labels.astype(np.int32)
     dataroot = os.path.join(os.path.dirname(os.path.dirname(os.path.join(os.getcwd()))) + '/data' + '/ukb_data')
     pickle.dump(full_data, open(dataroot + "/data.pkl", "wb"))
     pickle.dump(full_labels, open(dataroot + "/label.pkl", "wb"))
