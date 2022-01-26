@@ -46,7 +46,7 @@ class AE(nn.Module):
             h = xavier_init(self.num - int(self.num * 4 / 5), self.lsd_dim).requires_grad_(True)
         return h
 
-    def forward(self, x):
+    def forward(self, x, missing_index):
         lsd_train = self.encoder(x, missing_index)  # （1600，128）
         x_pred = self.decoder(lsd_train)
         return x_pred
@@ -73,6 +73,8 @@ if __name__ == '__main__':
         os.chdir("../../")
     args = parse_args()
     args.dataloader = "UKB_Dataset"
+    args.lsd_dim = 128
+    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -103,6 +105,8 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
         net.train(True)
+        best_eval_accuracy = 0  # 最佳验证准确率
+        best_train_accuracy = 0
         rec_loss_sum = 0
         train_accuracy = 0
         all_num = 0
@@ -113,14 +117,14 @@ if __name__ == '__main__':
             y_onehot = torch.zeros(y.shape[0], args.classes, device=args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
             # 重建原数据,考虑缺失模态情况
-            x_pred = net(X)
+            x_pred = net(X, missing_index)
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             optim.zero_grad()
             rec_loss.backward()
             optim.step()
             rec_loss_sum += rec_loss.item()
             # 计算准确率
-            _, predicted = classification_loss(y_onehot, y, net.encoder(X), args.weight)
+            _, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight)
             train_accuracy = accuracy(predicted, y)
         train_accuracy = accuracy.compute().data
         print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy))
@@ -132,10 +136,13 @@ if __name__ == '__main__':
         accuracy = Accuracy()
         with torch.no_grad():
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
-                x_pred = net(X)
+                # 产生one-hot编码的标签
+                y_onehot = torch.zeros(y.shape[0], args.classes, device=args.device).scatter_(1, y.reshape(
+                    y.shape[0], 1), 1)
+                x_pred = net(X, missing_index)
                 val_rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
                 val_rec_loss_sum += val_rec_loss.item()
-                _, predicted = classification_loss(y_onehot, y, net.encoder(X), args.weight)
+                _, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight)
                 valid_accuracy = accuracy(predicted, y)
             valid_accuracy = accuracy.compute().data
             print("valid reconstruction loss: %.4f valid accuracy: %.4f" % (val_rec_loss_sum, valid_accuracy))
