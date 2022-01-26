@@ -3,14 +3,13 @@
 # @Author  : HCY
 # @File    : UKB_dataset.py
 # @Software: PyCharm
+import os
 import pickle
 
-import torch
-from torch.utils.data import Dataset
-from utils.preprocess import *
 import pandas as pd
-import os
-import numpy as np
+from torch.utils.data import Dataset
+
+from utils.preprocess import *
 
 
 def preprocess_data():
