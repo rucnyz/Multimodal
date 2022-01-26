@@ -83,7 +83,7 @@ def lmnn_transform(x, y_true, x_valid):
 
 if __name__ == '__main__':
     if os.getcwd().endswith("src"):
-        os.chdir("../../")
+        os.chdir("../")
     args = parse_args()
     args.dataloader = "UKB_Dataset"
     # 设置seed

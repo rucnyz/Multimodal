@@ -80,7 +80,7 @@ def train(net, optim, train_loader, eval_loader, args):
             # 计算未缺失模态的重建损失和分类损失
             # x_pred-->decoder & encoder  lsd_train-->encoder
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
-            clf_loss, predicted = classification_loss(y_onehot, y, lsd_train, args.weight)
+            clf_loss, predicted = classification_loss(y_onehot, y, lsd_train, args.weight, args.device)
             optim["encoder"].zero_grad()
             (rec_loss + clf_loss + dec_loss).backward()
             optim["encoder"].step()
@@ -414,14 +414,14 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
-            loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight)
+            loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
             optim[1].zero_grad()
             loss1.backward()
             loss2.backward()
             optim[1].step()
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
-        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx], args.weight)
+        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
         rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction: %.4f, Classification: %.4f, Lr: %.2e, %4d m remaining"

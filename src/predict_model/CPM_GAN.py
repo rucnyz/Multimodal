@@ -44,7 +44,7 @@ class Encoder(nn.Module):
             K_vector = torch.cat((K_vector, self.K(each).unsqueeze(1)), 1)
             V_vector = torch.cat((V_vector, self.V(each).unsqueeze(1)), 1)
         output, _ = self.attn(Q_vector, K_vector, V_vector, need_weights = False)
-        return output.sum(dim=1)
+        return output.sum(dim = 1)
 
 
 class CPM_GAN(nn.Module):

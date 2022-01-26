@@ -5,6 +5,7 @@
 # @Software: PyCharm
 import argparse
 import os
+import time
 
 from torch import nn
 from torch.utils.data import DataLoader
@@ -24,7 +25,8 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
+                                   'UKB_AD'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
@@ -36,17 +38,19 @@ def parse_args():
 
 # 直接连接
 def feat_concat(x):
-    concat_X = torch.tensor([])
+    concat_X = torch.tensor([], device = args.device)
     for i in range(args.views):
-        concat_X = torch.cat((concat_X, x[i]), dim = 1)
+        concat_X = torch.cat((concat_X, x[i].to(args.device)), dim = 1)
     return concat_X
 
 
 if __name__ == '__main__':
     if os.getcwd().endswith("src"):
-        os.chdir("../../")
+        os.chdir("../")
     args = parse_args()
     args.dataloader = "UKB_Dataset"
+    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # args.device = torch.device("cpu")
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -74,11 +78,11 @@ if __name__ == '__main__':
 
     epochs = 200
     # Net
-    net = MultiLayerPerceptron(input_size = sum(args.classifier_dims), classes = args.classes)
+    net = MultiLayerPerceptron(input_size = sum(args.classifier_dims), classes = args.classes).to(args.device)
     # 优化器
     optim = Adam(net, args.lr)
     # 损失函数
-    loss_fn = nn.CrossEntropyLoss(weight = args.weight)
+    loss_fn = nn.CrossEntropyLoss(weight = args.weight).to(args.device)
     best_eval_accuracy = 0
     for epoch in range(epochs):
         net.train(True)
@@ -86,8 +90,10 @@ if __name__ == '__main__':
         train_accuracy = 0
         all_num = 0
         # train
-        accuracy = Accuracy()
+        accuracy = Accuracy().to(args.device)
+        start_time = time.time()
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
+            y = y.to(args.device)
             processed_X = feat_concat(X)
             output = net(processed_X)
             loss = loss_fn(output, y)
@@ -98,19 +104,21 @@ if __name__ == '__main__':
             # 计算准确率
             train_accuracy = accuracy(output, y)
         train_accuracy = accuracy.compute().data
-        print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (epoch + 1, loss_sum, train_accuracy))
+        print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (
+            epoch + 1, loss_sum, train_accuracy))
         # valid
         all_num = 0
         valid_accuracy = 0
         net.train(False)
-        accuracy = Accuracy()
+        accuracy = Accuracy().to(args.device)
         with torch.no_grad():
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
+                y = y.to(args.device)
                 processed_X = feat_concat(X)
                 output = net(processed_X)
                 valid_accuracy = accuracy(output, y)
             valid_accuracy = accuracy.compute().data
-            print("valid accuracy: %.4f" % valid_accuracy)
+            print("valid accuracy: %.4f  time: %.2f" % (valid_accuracy, time.time() - start_time))
             if valid_accuracy >= best_eval_accuracy:
                 best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")

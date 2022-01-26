@@ -67,13 +67,12 @@ class AdjustedCrossEntropyLoss(nn.Module):
 
 # 把隐藏层通过一些计算，算出来预测结果，然后计算预测和真实之间的误差
 # 难点在于他不是常规的去前向传播，而是用了聚类的思路，使得相同标签的元素在特征空间上越来越近，不同标签的元素越来越远
-def classification_loss(label_onehot, y, lsd_temp, weight):
+def classification_loss(label_onehot, y, lsd_temp, weight, device):
     # lsd_temp 隐藏层数据(N,lsd_dim)  # xavier_init(int(self.num * 4 / 5), self.lsd_dim).requires_grad_(True)
     # 一个聚类的思路
     train_matrix = torch.mm(lsd_temp, lsd_temp.T)  # (1600,128)*(128,1600) = (1600,1600)  含负数
-    train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1])  # (1600,1600)单位矩阵
-    # if torch.cuda.is_available():
-    #     train_E = train_E.cuda()
+    train_E = torch.eye(train_matrix.shape[0], train_matrix.shape[1], device = device)  # (1600,1600)单位矩阵
+
     train_matrix = train_matrix - train_matrix * train_E  # 去掉对角线元素
     # 相似度：这个(N,N)的矩阵的(i,j)位置的元素，代表着第i个样本和第j个样本的点积(第i个数据是指一个lsd_dim长度的向量)，我们记这个点积结果为 相似度
     label_num = label_onehot.sum(0, keepdim = True)

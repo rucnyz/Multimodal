@@ -18,7 +18,7 @@ from utils.pred_func import accuracy_count, ave
 from utils.preprocess import *
 
 if os.getcwd().endswith("src"):
-    os.chdir("../../")
+    os.chdir("../")
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--missing_rate', type = float, default = 0,
@@ -76,7 +76,7 @@ for epoch in range(epochs):
             lsd_dim += lsd[i]
         y_onehot = torch.zeros(y.shape[0], args.classes).scatter_(1, y.reshape(
             y.shape[0], 1), 1)
-        loss2, _ = classification_loss(y_onehot, y, lsd_dim)
+        loss2, _ = classification_loss(y_onehot, y, lsd_dim, args.weight, args.device)
         optim_cca.zero_grad()
         loss.backward()
         loss2.backward()
