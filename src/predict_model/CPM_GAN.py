@@ -13,6 +13,7 @@ from utils.preprocess import *
 class Encoder(nn.Module):
     def __init__(self, args):
         super(Encoder, self).__init__()
+        self.device = args.device
         self.view_num = args.views
         self.Classifiers = nn.ModuleList(
             [nn.Sequential(
@@ -30,16 +31,16 @@ class Encoder(nn.Module):
         # attention = 0
         # for i in range(self.view_num):
         #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
-        Q_vector = torch.tensor([])
-        K_vector = torch.tensor([])
-        V_vector = torch.tensor([])
+        Q_vector = torch.tensor([], device = self.device)
+        K_vector = torch.tensor([], device = self.device)
+        V_vector = torch.tensor([], device = self.device)
         for i in range(self.view_num):
             each = self.Classifiers[i](X[i]) * missing_index[:, [i]]
             Q_vector = torch.concat((Q_vector, self.Q(each).unsqueeze(1)), 1)
             K_vector = torch.concat((K_vector, self.K(each).unsqueeze(1)), 1)
             V_vector = torch.concat((V_vector, self.V(each).unsqueeze(1)), 1)
         output, _ = self.attn(Q_vector, K_vector, V_vector, need_weights = False)
-        return output.sum(dim=1)
+        return output.sum(dim = 1)
 
 
 class CPM_GAN(nn.Module):
