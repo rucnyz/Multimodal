@@ -58,19 +58,20 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
+                                   'UKB_AD'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
-    parser.add_argument('--lr', type = float, default = 0.0006)
+    parser.add_argument('--lr', type = float, default = 0.001)
     argument = parser.parse_args()
     return argument
 
 
 if __name__ == '__main__':
     if os.getcwd().endswith("src"):
-        os.chdir("../../")
+        os.chdir("../")
     args = parse_args()
     args.dataloader = "UKB_Dataset"
     args.lsd_dim = 128
@@ -121,17 +122,18 @@ if __name__ == '__main__':
             y = y.to(args.device)
             missing_index = missing_index.to(args.device)
             # 产生one-hot编码的标签
-            y_onehot = torch.zeros(y.shape[0], args.classes, device=args.device).scatter_(1, y.reshape(
+            y_onehot = torch.zeros(y.shape[0], args.classes, device = args.device).scatter_(1, y.reshape(
                 y.shape[0], 1), 1)
             # 重建原数据,考虑缺失模态情况
             x_pred = net(X, missing_index)
+            lsd_train = net.encoder(X, missing_index)
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             optim.zero_grad()
             rec_loss.backward()
             optim.step()
             rec_loss_sum += rec_loss.item()
             # 计算准确率
-            _, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight)
+            _, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight, args.device)
             train_accuracy = accuracy(predicted, y)
         train_accuracy = accuracy.compute().data
         print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy))
@@ -149,12 +151,10 @@ if __name__ == '__main__':
                 y = y.to(args.device)
                 missing_index = missing_index.to(args.device)
                 # 产生one-hot编码的标签
-                y_onehot = torch.zeros(y.shape[0], args.classes, device=args.device).scatter_(1, y.reshape(
-                    y.shape[0], 1), 1)
                 x_pred = net(X, missing_index)
                 val_rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
                 val_rec_loss_sum += val_rec_loss.item()
-                _, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight)
+                predicted = ave(lsd_train, net.encoder(X, missing_index), y_onehot)
                 valid_accuracy = accuracy(predicted, y)
             valid_accuracy = accuracy.compute().data
             print("valid reconstruction loss: %.4f valid accuracy: %.4f" % (val_rec_loss_sum, valid_accuracy))

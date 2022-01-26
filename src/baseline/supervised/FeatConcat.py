@@ -5,6 +5,7 @@
 # @Software: PyCharm
 import argparse
 import os
+import pickle
 import time
 
 from torch import nn
@@ -107,6 +108,7 @@ if __name__ == '__main__':
         print("[Epoch %2d] loss: %.4f accuracy: %.4f" % (
             epoch + 1, loss_sum, train_accuracy))
         # valid
+        lsds = torch.tensor([])
         all_num = 0
         valid_accuracy = 0
         net.train(False)
@@ -115,11 +117,14 @@ if __name__ == '__main__':
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
                 y = y.to(args.device)
                 processed_X = feat_concat(X)
+                lsds = torch.concat([lsds, processed_X])
                 output = net(processed_X)
                 valid_accuracy = accuracy(output, y)
             valid_accuracy = accuracy.compute().data
             print("valid accuracy: %.4f  time: %.2f" % (valid_accuracy, time.time() - start_time))
             if valid_accuracy >= best_eval_accuracy:
+                file = open('data/representations/featconcat_data.pkl', 'wb')
+                pickle.dump((lsds, eval_loader.dataset.full_labels), file)
                 best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))

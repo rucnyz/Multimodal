@@ -25,6 +25,9 @@ class UCI_Dataset(Dataset):
             args.classes = int(full_labels.max() + 1)  # 类别数量
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
+            args.weight = torch.tensor(
+                np.bincount(full_labels.astype(np.int32)).max() / np.bincount(full_labels.astype(np.int32)),
+                dtype = torch.float32)
             for v in range(args.views):  # 6个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集
                 classifier_dims.append(full_data[v].shape[1])
