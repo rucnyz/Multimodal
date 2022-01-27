@@ -73,7 +73,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_Dataset"
+    args.dataloader = "UCI_Dataset"
     args.lsd_dim = 128
     # args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.device = "cpu"

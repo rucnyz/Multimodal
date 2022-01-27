@@ -10,6 +10,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 
 from utils.preprocess import *
+from numpy.random import randint
 
 
 def preprocess_data():
@@ -44,15 +45,42 @@ def preprocess_data():
     others = ["n_20002_0_0", "n_20003_0_0"]
     ill = ["dep_inc"]
 
-    data_final = data_all[population + economy + lifestyle + blood + metabolism + urine + others + gene + ill]
-    data_final = data_final.replace('NA', np.nan)
+    data_final_all = data_all[population + economy + lifestyle + blood + metabolism + urine + others + gene + ill]
+
+    # 有缺失值
+    healthy_all = data_final_all[data_final_all["dep_inc"] == 0]
+    depressed_all = data_final_all[data_final_all["dep_inc"] == 1]
+    data_final_all_balanced = pd.concat([depressed_all, healthy_all.sample(n=len(depressed_all))])
+
+    full_data_all = {0: data_final_all_balanced[population], 1: data_final_all_balanced[economy],
+                     2: data_final_all_balanced[lifestyle], 3: data_final_all_balanced[blood],
+                     4: data_final_all_balanced[metabolism], 5: data_final_all_balanced[urine],
+                     6: data_final_all_balanced[gene], 7: data_final_all_balanced[others]}
+    full_labels_all = data_final_all_balanced[ill].values.squeeze()
+
+    data_final = data_final_all.replace('NA', np.nan)
+    alldata_len = len(data_final)
+    view_num = len(full_data_all)
+    matrix = randint(1, 2, size=(alldata_len, view_num))
+    for v in range(view_num):
+        for i in range(alldata_len):
+            if full_data_all[0].iloc[[0]].T.isnull().any().bool():
+                matrix[i][v] = 0
+
+    # 无缺失值
     data_final = data_final.dropna(axis = 0, how = 'any')  # drop all rows that have any NaN values
 
-    full_data = {0: data_final[population], 1: data_final[economy], 2: data_final[lifestyle], 3: data_final[blood],
-                 4: data_final[metabolism], 5: data_final[urine], 6: data_final[gene], 7: data_final[others]}
+    healthy = data_final[data_final["dep_inc"] == 0]
+    depressed = data_final[data_final["dep_inc"] == 1]
+    data_final_balanced = pd.concat([depressed, healthy.sample(n=len(depressed))])
 
-    full_labels = data_final[ill].values.squeeze()
-    return full_data, full_labels
+    full_data = {0: data_final_balanced[population], 1: data_final_balanced[economy],
+                 2: data_final_balanced[lifestyle], 3: data_final_balanced[blood],
+                 4: data_final_balanced[metabolism], 5: data_final_balanced[urine],
+                 6: data_final_balanced[gene], 7: data_final_balanced[others]}
+
+    full_labels = data_final_balanced[ill].values.squeeze()
+    return full_data_all, full_labels_all, full_data, full_labels, matrix
 
 
 class UKB_Dataset(Dataset):
@@ -133,8 +161,17 @@ class UKB_Dataset(Dataset):
 
 
 if __name__ == '__main__':
-    full_data, full_labels = preprocess_data()
+    full_data_all, full_labels_all, full_data, full_labels, matrix = preprocess_data()
     full_labels = full_labels.astype(np.int32)
+    full_labels_all = full_labels_all.astype(np.int32)
     dataroot = os.path.join(os.path.dirname(os.path.dirname(os.path.join(os.getcwd()))) + '/data' + '/ukb_data')
     pickle.dump(full_data, open(dataroot + "/data.pkl", "wb"))
+    print("data")
     pickle.dump(full_labels, open(dataroot + "/label.pkl", "wb"))
+    print("label")
+    pickle.dump(full_data_all, open(dataroot + "/data_all.pkl", "wb"))
+    print("data_all")
+    pickle.dump(full_labels_all, open(dataroot + "/label_all.pkl", "wb"))
+    print("label_all")
+    pickle.dump(matrix, open(dataroot + "/missing_index_all.pkl", "wb"))
+
