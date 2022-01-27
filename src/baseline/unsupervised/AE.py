@@ -64,7 +64,7 @@ def parse_args():
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
-    parser.add_argument('--lr', type = float, default = 0.001)
+    parser.add_argument('--lr', type = float, default = 0.0008)
     argument = parser.parse_args()
     return argument
 
@@ -75,8 +75,8 @@ if __name__ == '__main__':
     args = parse_args()
     args.dataloader = "UKB_Dataset"
     args.lsd_dim = 128
-    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # args.device = "cpu"
+    # args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    args.device = "cpu"
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     eval_loader = DataLoader(eval_dset, batch_size = args.num - int(args.num * 4 / 5), num_workers = args.num_workers,
                              pin_memory = False)
 
-    epochs = 200
+    epochs = 100
     # Net
     net = AE(args)
     net.to(args.device)
