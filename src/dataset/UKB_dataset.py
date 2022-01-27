@@ -5,6 +5,7 @@
 # @Software: PyCharm
 import os
 import pickle
+import torch
 
 import pandas as pd
 from torch.utils.data import Dataset
@@ -14,6 +15,7 @@ from numpy.random import randint
 
 
 def preprocess_data():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     dataroot = os.path.join(os.getcwd() + '/../../data' + '/ukb_data')
 
     data1 = pd.read_stata(dataroot + '/【控制变量】depression_covariant.dta')
@@ -58,16 +60,17 @@ def preprocess_data():
                      6: data_final_all_balanced[gene], 7: data_final_all_balanced[others]}
     full_labels_all = data_final_all_balanced[ill].values.squeeze()
 
-    data_final = data_final_all.replace('NA', np.nan)
-    alldata_len = len(data_final)
+    data_final_all_balanced = data_final_all_balanced.replace('NA', np.nan)
+    alldata_len = len(data_final_all_balanced)
     view_num = len(full_data_all)
-    matrix = randint(1, 2, size=(alldata_len, view_num))
+    matrix = randint(1, 2, size = (alldata_len, view_num))
     for v in range(view_num):
         for i in range(alldata_len):
-            if full_data_all[0].iloc[[0]].T.isnull().any().bool():
+            if full_data_all[v].iloc[[i]].T.isnull().any().bool():
                 matrix[i][v] = 0
 
     # 无缺失值
+    data_final = data_final_all.replace('NA', np.nan)
     data_final = data_final.dropna(axis = 0, how = 'any')  # drop all rows that have any NaN values
 
     healthy = data_final[data_final["dep_inc"] == 0]
@@ -166,12 +169,8 @@ if __name__ == '__main__':
     full_labels_all = full_labels_all.astype(np.int32)
     dataroot = os.path.join(os.path.dirname(os.path.dirname(os.path.join(os.getcwd()))) + '/data' + '/ukb_data')
     pickle.dump(full_data, open(dataroot + "/data.pkl", "wb"))
-    print("data")
     pickle.dump(full_labels, open(dataroot + "/label.pkl", "wb"))
-    print("label")
     pickle.dump(full_data_all, open(dataroot + "/data_all.pkl", "wb"))
-    print("data_all")
     pickle.dump(full_labels_all, open(dataroot + "/label_all.pkl", "wb"))
-    print("label_all")
     pickle.dump(matrix, open(dataroot + "/missing_index_all.pkl", "wb"))
 
