@@ -105,10 +105,10 @@ if __name__ == '__main__':
     net.to(args.device)
     # 优化器
     optim = Adam(net, args.lr)
-
+    best_eval_accuracy = 0  # 最佳验证准确率
     for epoch in range(epochs):
         net.train(True)
-        best_eval_accuracy = 0  # 最佳验证准确率
+
         best_train_accuracy = 0
         rec_loss_sum = 0
         train_accuracy = 0
