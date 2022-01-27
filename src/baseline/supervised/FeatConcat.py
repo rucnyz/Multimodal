@@ -117,7 +117,7 @@ if __name__ == '__main__':
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
                 y = y.to(args.device)
                 processed_X = feat_concat(X)
-                lsds = torch.concat([lsds, processed_X])
+                lsds = torch.cat([lsds, processed_X])
                 output = net(processed_X)
                 valid_accuracy = accuracy(output, y)
             valid_accuracy = accuracy.compute().data
