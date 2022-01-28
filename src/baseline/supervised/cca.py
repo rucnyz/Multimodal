@@ -26,7 +26,7 @@ parser.add_argument('--missing_rate', type = float, default = 0,
 parser.add_argument("--mode", default = 'client')
 parser.add_argument("--port", default = 52162)
 args = parser.parse_args()
-
+args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(123)  # 设置CPU生成随机数的种子，方便下次复现实验结果
 np.random.seed(123)
 

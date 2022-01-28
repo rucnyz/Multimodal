@@ -56,12 +56,15 @@ class AdjustedCrossEntropyLoss(nn.Module):
         self.lambda_epochs = args.lambda_epochs
         self.views = args.views
         self.classes = args.classes
+        self.weight = args.weight
 
     def forward(self, predicted, y, global_step):
-        loss = torch.tensor([])
+        loss = 0
         for v_num in range(self.views + 1):
             loss += ce_loss(y, predicted[v_num], self.classes, global_step, self.lambda_epochs)
-        loss = torch.mean(loss)  # batch_size个sample的loss均值
+        class_weight = y.type(torch.float32).apply_(lambda a: self.weight[int(a)])
+
+        loss = torch.mean(loss.squeeze() * class_weight)  # batch_size个sample的loss均值
         return loss
 
 

@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
                         default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0,
+    parser.add_argument('--missing_rate', type = float, default = 0.1,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
     argument = parser.parse_args()
@@ -72,7 +72,7 @@ def lmnn_transform(x, y_true, x_valid):
     concat_X = torch.tensor([])
     for i in range(args.views):
         concat_X = torch.cat((concat_X, x[i]), dim = 1)
-    lmnn = LMNN(k = 5, learn_rate = 1e-6, verbose = False, random_state = 123)
+    lmnn = LMNN(k = 5, learn_rate = 1e-4, verbose = True, random_state = 123, convergence_tol=0.1)
     lmnn.fit(concat_X, y_true)
     concat_X_valid = torch.tensor([])
     for i in range(args.views):
@@ -113,18 +113,18 @@ if __name__ == '__main__':
 
     for idx1, X, y, missing_index1 in train_loader:
         for idx2, X_valid, y_valid, missing_index2 in eval_loader:
-            processed_X, processed_X_valid = feat_concat(X, y, X_valid)
+            processed_X, processed_X_valid = lmnn_transform(X, y, X_valid)
             best_eval_accuracy = 0
             best_y_valid_predict = torch.tensor([])
             # 定义网络及其他
             # Net
             net = MultiLayerPerceptron(input_size = args.input_size, classes = args.classes)
             # 优化器
-            optim = Adam(net, 0.001)
+            optim = Adam(net, 0.0005)
             # 损失函数
             loss_fn = nn.CrossEntropyLoss(weight = args.weight)
             # 进入循环
-            epochs = 100
+            epochs = 200
             for epoch in range(epochs):
                 net.train(True)
                 loss_sum = 0
@@ -149,4 +149,4 @@ if __name__ == '__main__':
                         best_y_valid_predict = torch.argmax(output, dim = 1)
             print("---------------------------------------------")
             print("Best evaluate accuracy:{}".format(best_eval_accuracy))
-            plot_embedding(processed_X_valid, best_y_valid_predict, y_valid)
+            # plot_embedding(processed_X_valid, best_y_valid_predict, y_valid)

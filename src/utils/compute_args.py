@@ -26,7 +26,7 @@ def compute_args(args):
             or args.dataset == "Reuters" or args.dataset == "NUSWIDEOBJ" \
             or args.dataset == "UCI" or args.dataset == "UKB" or args.dataset == "UKB_AD":
         args.loss_fn = "AdjustedCrossEntropyLoss"
-        args.lambda_epochs = 50
+        args.lambda_epochs = 30
     # 模型选择
     if args.model == "CPM":
         args.lsd_dim = 128
