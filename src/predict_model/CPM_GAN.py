@@ -36,6 +36,7 @@ class Encoder(nn.Module):
         for i in range(self.views):
             X[i] = X[i].to(self.device)
         missing_index = missing_index.to(self.device)
+        missing_index = missing_index.to(torch.float32)
         Q_vector = torch.tensor([]).to(self.device)
         K_vector = torch.tensor([]).to(self.device)
         V_vector = torch.tensor([]).to(self.device)
