@@ -97,7 +97,7 @@ def train(net, optim, train_loader, eval_loader, args):
                     epoch + 1, step + 1, train_images, rec_loss_sum / (step + 1), clf_loss_sum / (step + 1),
                     dec_loss_sum / (step + 1),), end = " ")
         train_accuracy = 100 * train_accuracy / all_num
-        if train_accuracy > best_train_accuracy:
+        if train_accuracy > best_train_accuracy and epoch > 10:
             best_train_accuracy = train_accuracy
         # 记录时间
         time_end = time.time()
