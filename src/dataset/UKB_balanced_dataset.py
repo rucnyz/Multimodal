@@ -41,7 +41,7 @@ class UKB_BALANCED_Dataset(Dataset):
             args.classes = int(full_labels.max() + 1)  # 类别数量
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
-            args.weight = torch.tensor(np.bincount(full_labels).max() / np.bincount(full_labels), dtype = torch.float32)
+            args.weight = torch.tensor([1, 1])
             self.views = args.views
             for v in range(args.views):  # 8个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集
