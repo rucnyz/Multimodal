@@ -17,6 +17,8 @@ from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 from dataset.UKB_ad_dataset import UKB_AD_Dataset
+from dataset.UKB_all_dataset import UKB_ALL_Dataset
+from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
 
 
 # python中函数参数直接传地址，不涉及形参问题，所有的args都是一样的！
@@ -51,7 +53,7 @@ def parse_args():
     # Dataset
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
-                                   'UKB_AD'],
+                                   'UKB_AD', 'UKB_All', 'UKB_Balanced'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
@@ -88,7 +90,12 @@ if __name__ == '__main__':
     eval_dset = eval(args.dataloader)('valid', args)
 
     # Generate missing views
-    missing_index = get_missing_index(args.views, args.num, args.missing_rate)
+    dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
+    if args.dataset == 'UKB_All':
+        missing_index = pickle.load(open(dataroot + "/missing_index_all.pkl", "rb"))
+        print("missing_rate = " + str(sum(sum(missing_index))/(missing_index.shape[0] * missing_index.shape[1])))
+    else:
+        missing_index = get_missing_index(args.views, args.num, args.missing_rate)
 
     # Preprocess data with missing views and load data
     missing_data_process(args, train_dset, eval_dset, missing_index)
