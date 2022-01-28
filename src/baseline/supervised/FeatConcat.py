@@ -29,10 +29,10 @@ def parse_args():
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
                                    'UKB_AD'],
                         default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0,
+    parser.add_argument('--missing_rate', type = float, default = 0.1,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
-    parser.add_argument('--lr', type = float, default = 0.0006)
+    parser.add_argument('--lr', type = float, default = 0.0003)
     argument = parser.parse_args()
     return argument
 

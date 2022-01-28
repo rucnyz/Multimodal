@@ -32,6 +32,7 @@ class Encoder(nn.Module):
         # attention = 0
         # for i in range(self.view_num):
         #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
+        # return attention
         for i in range(self.views):
             X[i] = X[i].to(self.device)
         missing_index = missing_index.to(self.device)
