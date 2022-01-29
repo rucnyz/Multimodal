@@ -18,6 +18,7 @@ from utils.preprocess import get_missing_index, missing_data_process
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_ad_dataset import UKB_AD_Dataset
+from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
 
 
 def parse_args():
@@ -29,7 +30,7 @@ def parse_args():
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
                                    'UKB_AD'],
                         default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0.1,
+    parser.add_argument('--missing_rate', type = float, default = 0,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
     parser.add_argument('--lr', type = float, default = 0.0003)
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_Dataset"
+    args.dataloader = "UKB_BALANCED_Dataset"
     args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # args.device = torch.device("cpu")
     # 设置seed

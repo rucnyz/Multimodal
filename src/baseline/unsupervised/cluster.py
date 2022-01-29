@@ -32,7 +32,7 @@ def cluster_accuracy(y_predict, y_true):
 
 random_state = 100
 # 数据
-h_data = open('data/representations/CPM_GAN0.0_2_10_data.pkl', 'rb')
+h_data = open('data/representations/featconcat_data.pkl', 'rb')
 X, y = pickle.load(h_data)
 # X, y = make_blobs(n_samples = [300, 300, 400], centers = None, n_features = 2, random_state = random_state)
 # KMeans聚类

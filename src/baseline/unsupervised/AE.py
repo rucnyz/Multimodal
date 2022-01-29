@@ -18,6 +18,8 @@ from utils.preprocess import get_missing_index, missing_data_process
 from torchmetrics import Accuracy
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
+from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
+from dataset.UKB_all_dataset import UKB_ALL_Dataset
 from dataset.multi_view_dataset import Multiview_Dataset
 from dataset.UKB_ad_dataset import UKB_AD_Dataset
 
@@ -73,7 +75,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UCI_Dataset"
+    args.dataloader = "UKB_BALANCED_Dataset"
     args.lsd_dim = 128
     # args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.device = "cpu"
@@ -128,12 +130,14 @@ if __name__ == '__main__':
             x_pred = net(X, missing_index)
             lsd_train = net.encoder(X, missing_index)
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
+            clf_loss, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight,
+                                                      args.device)
             optim.zero_grad()
-            rec_loss.backward()
+            (rec_loss + clf_loss).backward()
             optim.step()
             rec_loss_sum += rec_loss.item()
             # 计算准确率
-            _, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight, args.device)
+
             train_accuracy = accuracy(predicted, y)
         train_accuracy = accuracy.compute().data
         print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy))

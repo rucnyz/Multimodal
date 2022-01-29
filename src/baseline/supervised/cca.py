@@ -21,12 +21,12 @@ if os.getcwd().endswith("src"):
     os.chdir("../")
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--missing_rate', type = float, default = 0,
+parser.add_argument('--missing_rate', type = float, default = 0.1,
                     help = 'view missing rate [default: 0]')
 parser.add_argument("--mode", default = 'client')
 parser.add_argument("--port", default = 52162)
 args = parser.parse_args()
-args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+args.device = torch.device("cpu")
 torch.manual_seed(123)  # 设置CPU生成随机数的种子，方便下次复现实验结果
 np.random.seed(123)
 
@@ -54,8 +54,8 @@ for ld in args.classifier_dims:
     decoders.append(architectures.Decoder(latent_dims = latent_dims, feature_size = ld))
 # dcca = DCCAE(latent_dims = latent_dims, encoders = encoders, decoders = decoders, r = 0.2)
 dcca = DCCA(latent_dims = latent_dims, encoders = encoders, r = 0.2)
-optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.01, weight_decay = 0.01)
-bce_loss = nn.BCELoss()
+optim_cca = torch.optim.Adam(dcca.parameters(), lr = 0.001)
+bce_loss = nn.BCELoss(weight = args.weight)
 # 开始训练
 epochs = 20
 # 测试一下

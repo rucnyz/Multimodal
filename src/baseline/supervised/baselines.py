@@ -30,7 +30,8 @@ def parse_args():
     parser.add_argument('--name', type = str, default = 'exp0/')
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--dataset', type = str,
-                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB', 'UKB_AD'],
+                        choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
+                                   'UKB_AD'],
                         default = 'UCI')
     parser.add_argument('--missing_rate', type = float, default = 0.2,
                         help = 'view missing rate [default: 0]')
@@ -72,7 +73,7 @@ def lmnn_transform(x, y_true, x_valid):
     concat_X = torch.tensor([])
     for i in range(args.views):
         concat_X = torch.cat((concat_X, x[i]), dim = 1)
-    lmnn = LMNN(k = 5, learn_rate = 1e-4, verbose = True, random_state = 123, convergence_tol=0.1)
+    lmnn = LMNN(k = 5, learn_rate = 1e-4, verbose = True, random_state = 123, convergence_tol = 0.1)
     lmnn.fit(concat_X, y_true)
     concat_X_valid = torch.tensor([])
     for i in range(args.views):

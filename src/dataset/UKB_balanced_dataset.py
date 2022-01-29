@@ -15,6 +15,18 @@ from utils.preprocess import *
 from numpy.random import randint
 
 
+def shuffle_dataset(data, label):
+    ri = np.random.permutation(len(label))
+    out = {}
+    for i in range(len(data)):
+        # 注意lists中的每个数据集l都是numpy.ndarray类型的数据
+        # numpy.ndarray才可以以list、numpy.ndarray等序列类型作为下标,
+        # 而list不能这样
+        out[i] = data[i][ri]
+    out_label = label[ri]
+    return out, out_label
+
+
 class UKB_BALANCED_Dataset(Dataset):
     # 把dataroot改成mimic的目录
     def __init__(self, name, args):  # name: train/valid/test
@@ -41,7 +53,7 @@ class UKB_BALANCED_Dataset(Dataset):
             args.classes = int(full_labels.max() + 1)  # 类别数量
             args.num = len(full_labels)  # 数据总数
             args.views = len(full_data)  # 模态数量
-            args.weight = torch.tensor([1, 1])
+            args.weight = torch.tensor([1.0, 1.0])
             self.views = args.views
             for v in range(args.views):  # 8个模态
                 full_data[v] = full_data[v][:int(args.num * 4 / 5)]  # 取80%作为训练集

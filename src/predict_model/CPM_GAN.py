@@ -18,10 +18,10 @@ class Encoder(nn.Module):
         self.views = args.views
         self.Classifiers = nn.ModuleList(
             [nn.Sequential(
-                nn.Linear(args.classifier_dims[i], 150),
+                nn.Linear(args.classifier_dims[i], args.lsd_dim),
                 nn.ReLU(),
-                nn.Linear(150, args.lsd_dim),
-                nn.Dropout(p = 0.2)  # 解决梯度爆炸问题
+                nn.Linear(args.lsd_dim, args.lsd_dim),
+                # nn.Dropout(p = 0.2)  # 解决梯度爆炸问题
             ) for i in range(self.view_num)])
         self.Q = nn.Linear(args.lsd_dim, args.lsd_dim, bias = False)
         self.K = nn.Linear(args.lsd_dim, args.lsd_dim, bias = False)
