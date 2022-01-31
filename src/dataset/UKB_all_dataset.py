@@ -33,8 +33,8 @@ class UKB_ALL_Dataset(Dataset):
         self.name = name
 
         full_data = pickle.load(open(dataroot + "/data_all.pkl", "rb"))
-        for v in range(len(full_data)):
-            full_data[v] = full_data[v].replace(np.nan, 0)
+        # for v in range(len(full_data)):
+        #     full_data[v] = full_data[v].replace(np.nan, 0)
         full_labels = pickle.load(open(dataroot + "/label_all.pkl", "rb"))
 
         if name == "train":

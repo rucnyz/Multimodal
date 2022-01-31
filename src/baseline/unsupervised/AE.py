@@ -3,6 +3,7 @@
 # @Author  : HCY
 # @File    : AE.py
 # @Software: PyCharm
+import pickle
 
 from generate_model.GAN import *  # Generator
 from predict_model.CPM_GAN import *  # Encoder
@@ -63,10 +64,10 @@ def parse_args():
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
                                    'UKB_AD'],
                         default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0,
+    parser.add_argument('--missing_rate', type = float, default = 0.5,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
-    parser.add_argument('--lr', type = float, default = 0.0008)
+    parser.add_argument('--lr', type = float, default = 0.0001)
     argument = parser.parse_args()
     return argument
 
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_BALANCED_Dataset"
+    args.dataloader = "UCI_Dataset"
     args.lsd_dim = 128
     # args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.device = "cpu"
@@ -101,23 +102,25 @@ if __name__ == '__main__':
     eval_loader = DataLoader(eval_dset, batch_size = args.num - int(args.num * 4 / 5), num_workers = args.num_workers,
                              pin_memory = False)
 
-    epochs = 100
+    epochs = 50
     # Net
     net = AE(args)
     net.to(args.device)
     # 优化器
     optim = Adam(net, args.lr)
     best_eval_accuracy = 0  # 最佳验证准确率
+    best_train_accuracy = 0
     for epoch in range(epochs):
         net.train(True)
 
-        best_train_accuracy = 0
+
         rec_loss_sum = 0
         train_accuracy = 0
         all_num = 0
         # train
         accuracy = Accuracy()
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
+            real_missing_index = missing_index
             # 使用cuda或者cpu设备
             for i in range(args.views):
                 X[i] = X[i].to(args.device)
@@ -133,13 +136,19 @@ if __name__ == '__main__':
             clf_loss, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight,
                                                       args.device)
             optim.zero_grad()
-            (rec_loss + clf_loss).backward()
+            (rec_loss).backward()
             optim.step()
             rec_loss_sum += rec_loss.item()
             # 计算准确率
 
             train_accuracy = accuracy(predicted, y)
         train_accuracy = accuracy.compute().data
+        if train_accuracy > best_train_accuracy:
+            file = open('data/representations/AE_' + 'data.pkl', 'wb')
+            pickle.dump((lsd_train, y), file)
+            file = open('data/imputation/AE_' + 'data.pkl', 'wb')
+            pickle.dump((x_pred, X, real_missing_index), file)
+            best_train_accuracy = train_accuracy
         print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy))
         # valid
         all_num = 0
@@ -162,7 +171,7 @@ if __name__ == '__main__':
                 valid_accuracy = accuracy(predicted, y)
             valid_accuracy = accuracy.compute().data
             print("valid reconstruction loss: %.4f valid accuracy: %.4f" % (val_rec_loss_sum, valid_accuracy))
-            if valid_accuracy >= best_eval_accuracy:
+            if valid_accuracy >= best_eval_accuracy and epoch > 10:
                 best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))

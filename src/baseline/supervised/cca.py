@@ -12,16 +12,18 @@ from mvlearn.embed import KMCCA
 from torch import nn
 from torch.utils.data import DataLoader
 from torchmetrics.functional import accuracy
+
+from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_dataset import UKB_Dataset
 from utils.loss_func import classification_loss
 from utils.pred_func import accuracy_count, ave
 from utils.preprocess import *
-
+from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
 if os.getcwd().endswith("src"):
     os.chdir("../")
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--missing_rate', type = float, default = 0.1,
+parser.add_argument('--missing_rate', type = float, default = 0.5,
                     help = 'view missing rate [default: 0]')
 parser.add_argument("--mode", default = 'client')
 parser.add_argument("--port", default = 52162)
@@ -30,8 +32,8 @@ args.device = torch.device("cpu")
 torch.manual_seed(123)  # 设置CPU生成随机数的种子，方便下次复现实验结果
 np.random.seed(123)
 
-train_dset = UKB_Dataset('train', args)
-eval_dset = UKB_Dataset('valid', args)
+train_dset = UCI_Dataset('train', args)
+eval_dset = UCI_Dataset('valid', args)
 # 设置好丢失模态
 missing_index = get_missing_index(args.views, args.num, args.missing_rate)
 train_dset.set_missing_index(missing_index[:int(args.num * 4 / 5)])
@@ -65,6 +67,7 @@ for epoch in range(epochs):
     loss_sum = 0
     train_accuracy = 0
     all_num = 0
+    lsds = torch.tensor([])
     # train
     for step, (idx, X, y, missing_index) in enumerate(train_loader):
         # 重建损失
@@ -74,6 +77,8 @@ for epoch in range(epochs):
         lsd = dcca(list(X.values()))
         for i in range(args.views):
             lsd_dim += lsd[i]
+        lsds = torch.concat([lsds, lsd_dim])
+        ys = y
         y_onehot = torch.zeros(y.shape[0], args.classes).scatter_(1, y.reshape(
             y.shape[0], 1), 1)
         loss2, _ = classification_loss(y_onehot, y, lsd_dim, args.weight, args.device)
@@ -92,7 +97,7 @@ for epoch in range(epochs):
     valid_accuracy = 0
     all_num = 0
     dcca.train(False)
-    lsds = torch.tensor([])
+
     with torch.no_grad():
         for step, (idx, X, y, missing_index) in enumerate(eval_loader):
             lsd_dim = 0
@@ -101,7 +106,7 @@ for epoch in range(epochs):
                 y.shape[0], 1), 1)
             for i in range(args.views):
                 lsd_dim += lsd[i]
-            lsds = torch.concat([lsds, lsd_dim])
+
             predicted = ave(lsd_dim, lsd_dim, y_onehot)
             valid_accuracy += accuracy_count(predicted, y)
             all_num += y.size(0)
@@ -109,7 +114,7 @@ for epoch in range(epochs):
         print("valid accuracy: %.4f" % valid_accuracy)
         if valid_accuracy >= best_eval_accuracy:
             file = open('data/representations/cca_data.pkl', 'wb')
-            pickle.dump((lsds, eval_loader.dataset.full_labels), file)
+            pickle.dump((lsds, ys), file)
             best_eval_accuracy = valid_accuracy
 print("---------------------------------------------")
 print("Best evaluate accuracy:{}".format(best_eval_accuracy))

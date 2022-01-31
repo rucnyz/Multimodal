@@ -92,7 +92,7 @@ if __name__ == '__main__':
     # Generate missing views
     dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
     if args.dataset == 'UKB_All':
-        missing_index = pickle.load(open(dataroot + "/missing_index_all.pkl", "rb"))
+        missing_index = pickle.load(open(dataroot + "/missing_index_all2.pkl", "rb"))
         print("missing_rate = " + str(sum(sum(missing_index))/(missing_index.shape[0] * missing_index.shape[1])))
     else:
         missing_index = get_missing_index(args.views, args.num, args.missing_rate)

@@ -3,6 +3,8 @@
 # @Author  : nieyuzhou
 # @File    : baselines.py
 # @Software: PyCharm
+import pickle
+
 import torch
 # from cca_zoo.deepmodels import DCCA, architectures
 from matplotlib import pyplot as plt
@@ -22,8 +24,8 @@ from utils.preprocess import get_missing_index, missing_data_process
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.UCI_dataset import UCI_Dataset
 from dataset.UKB_ad_dataset import UKB_AD_Dataset
-
-
+from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
+from dataset.UKB_all_dataset import UKB_ALL_Dataset
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type = str, default = 'ckpt/')
@@ -33,7 +35,7 @@ def parse_args():
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
                                    'UKB_AD'],
                         default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0.2,
+    parser.add_argument('--missing_rate', type = float, default = 0.5,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
     argument = parser.parse_args()
@@ -86,7 +88,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_Dataset"
+    args.dataloader = "UKB_ALL_Dataset"
     # 设置seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -96,9 +98,13 @@ if __name__ == '__main__':
     # eval: 返回传入字符串的表达式的结果
     train_dset = eval(args.dataloader)('train', args)  # args.dataloader类的构造函数
     eval_dset = eval(args.dataloader)('valid', args)
-
-    # 设置好丢失模态
-    missing_index = get_missing_index(args.views, args.num, args.missing_rate)
+    # Generate missing views
+    dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
+    if args.dataloader == 'UKB_ALL_Dataset':
+        missing_index = pickle.load(open(dataroot + "/missing_index_all2.pkl", "rb"))
+        print("missing_rate = " + str(sum(sum(missing_index)) / (missing_index.shape[0] * missing_index.shape[1])))
+    else:
+        missing_index = get_missing_index(args.views, args.num, args.missing_rate)
     train_dset.set_missing_index(missing_index[:int(args.num * 4 / 5)])
     eval_dset.set_missing_index(missing_index[int(args.num * 4 / 5):])
     # 均值填充
@@ -119,13 +125,13 @@ if __name__ == '__main__':
             best_y_valid_predict = torch.tensor([])
             # 定义网络及其他
             # Net
-            net = MultiLayerPerceptron(input_size = args.input_size, classes = args.classes)
+            net = MultiLayerPerceptron(input_size = args.input_size)
             # 优化器
-            optim = Adam(net, 0.0005)
+            optim = Adam(net, 0.0001)
             # 损失函数
             loss_fn = nn.CrossEntropyLoss(weight = args.weight)
             # 进入循环
-            epochs = 200
+            epochs = 50
             for epoch in range(epochs):
                 net.train(True)
                 loss_sum = 0
@@ -146,6 +152,8 @@ if __name__ == '__main__':
                     valid_accuracy = accuracy(output, y_valid)
                     print("valid accuracy: %.4f" % valid_accuracy)
                     if valid_accuracy >= best_eval_accuracy:
+                        file = open('data/representations/lmnn_data.pkl', 'wb')
+                        pickle.dump((processed_X, y), file)
                         best_eval_accuracy = valid_accuracy
                         best_y_valid_predict = torch.argmax(output, dim = 1)
             print("---------------------------------------------")

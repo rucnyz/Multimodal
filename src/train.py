@@ -35,6 +35,7 @@ def train(net, optim, train_loader, eval_loader, args):
         # 开始运行
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
             # 使用cuda或者cpu设备
+            real_missing_index =missing_index
             for i in range(args.views):
                 X[i] = X[i].to(args.device)
             y = y.to(args.device)
@@ -54,7 +55,6 @@ def train(net, optim, train_loader, eval_loader, args):
             x_pred = net.decoder(lsd_train)
             # 冻结decoder参数(decoder即generator)，计算discriminator损失
             # 取每一个模态X中未缺失部分作为正样本1，和x_pred中X缺失部分对应的数据作为生成样本0，训练discriminator
-            # ######## 如何体现是否缺失 ????????? encoder如何生成缺失数据 ????????
             output_real = net.discriminator(X)
             output_fake = net.discriminator(x_pred)
             disc_loss_real = bce_loss('exist', output_real, missing_index)
@@ -98,6 +98,16 @@ def train(net, optim, train_loader, eval_loader, args):
                     dec_loss_sum / (step + 1),), end = " ")
         train_accuracy = 100 * train_accuracy / all_num
         if train_accuracy > best_train_accuracy and epoch > 10:
+            file = open('data/representations/CPM_GAN' +
+                        str(args.missing_rate) + '_' +
+                        str(args.loop_times) + '_' +
+                        str(args.GAN_start) + '_' + 'data.pkl', 'wb')
+            pickle.dump((lsd_train, y), file)
+            file = open('data/imputation/CPM_GAN' +
+                        str(args.missing_rate) + '_' +
+                        str(args.loop_times) + '_' +
+                        str(args.GAN_start) + '_' + 'data.pkl', 'wb')
+            pickle.dump((x_pred, X, real_missing_index), file)
             best_train_accuracy = train_accuracy
         # 记录时间
         time_end = time.time()
@@ -106,7 +116,7 @@ def train(net, optim, train_loader, eval_loader, args):
         print("Train Accuracy :" + str(train_accuracy))
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy, lsds = evaluate(net, lsd_train, y_onehot, eval_loader, args)
+        valid_accuracy = evaluate(net, lsd_train, y_onehot, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy) + '\n')
         if (valid_accuracy > best_eval_accuracy) or (
                 valid_accuracy == best_eval_accuracy and train_accuracy > best_train_accuracy):
@@ -124,11 +134,7 @@ def train(net, optim, train_loader, eval_loader, args):
                 '/best' + str(args.seed) + str(args.dataset) + str(args.missing_rate) + "-" + str(args.loop_times) +
                 '.pkl'
             )
-            file = open('data/representations/CPM_GAN' +
-                        str(args.missing_rate) + '_' +
-                        str(args.loop_times) + '_' +
-                        str(args.GAN_start) + '_' + 'data.pkl', 'wb')
-            pickle.dump((lsds, eval_loader.dataset.full_labels), file)
+
             best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))
@@ -409,7 +415,7 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
             loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
             optim[1].zero_grad()
             loss1.backward()
-            loss2.backward()
+            # loss2.backward()
             optim[1].step()
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
@@ -457,7 +463,7 @@ def evaluate(net, lsd_train, y_onehot, eval_loader, args):
             all_num += y.size(0)
         accuracy = accuracy / all_num
     net.train(True)  # ==net.train()，恢复训练模式
-    return 100 * np.array(accuracy), lsd_valid
+    return 100 * np.array(accuracy)
 
 
 def evaluate_TMC(net, eval_loader, args):
