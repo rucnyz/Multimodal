@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
                                    'UKB_AD'],
-                        default = 'UCI')
+                        default = 'UKB')
     parser.add_argument('--missing_rate', type = float, default = 0.3,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_Dataset"
+    args.dataloader = "UCI_Dataset"
     args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # args.device = torch.device("cpu")
     # 设置seed
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         train_auc = 0
         all_num = 0
         # train
-        auc = AUROC().to(args.device)
+        auc = AUROC(num_classes=y.max()+1).to(args.device)
         start_time = time.time()
         lsds = torch.tensor([])
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         all_num = 0
         valid_auc = 0
         net.train(False)
-        auc = AUROC().to(args.device)
+        auc = AUROC(num_classes=y.max()+1).to(args.device)
         with torch.no_grad():
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
                 y = y.to(args.device)

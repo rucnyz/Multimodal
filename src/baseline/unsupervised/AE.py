@@ -9,6 +9,7 @@ from generate_model.GAN import *  # Generator
 from predict_model.CPM_GAN import *  # Encoder
 from utils.loss_func import *
 from utils.preprocess import *
+from torchmetrics import Accuracy, AUROC
 from torch.utils.data import DataLoader
 import argparse
 import os
@@ -63,8 +64,8 @@ def parse_args():
     parser.add_argument('--dataset', type = str,
                         choices = ['Caltech101_7', 'Caltech101_20', 'Reuters', 'NUSWIDEOBJ', 'MIMIC', 'UCI', 'UKB',
                                    'UKB_AD'],
-                        default = 'UCI')
-    parser.add_argument('--missing_rate', type = float, default = 0.5,
+                        default = 'UKB')
+    parser.add_argument('--missing_rate', type = float, default = 0.3,
                         help = 'view missing rate [default: 0]')
     parser.add_argument('--seed', type = int, default = 123)
     parser.add_argument('--lr', type = float, default = 0.0001)
@@ -76,7 +77,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UCI_Dataset"
+    args.dataloader = "UKB_Dataset"
     args.lsd_dim = 128
     # args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.device = "cpu"
@@ -115,10 +116,12 @@ if __name__ == '__main__':
 
 
         rec_loss_sum = 0
+        train_auc = 0
         train_accuracy = 0
         all_num = 0
         # train
         accuracy = Accuracy()
+        auc = AUROC(num_classes=y.max()+1).to(args.device)
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
             real_missing_index = missing_index
             # 使用cuda或者cpu设备
@@ -133,7 +136,7 @@ if __name__ == '__main__':
             x_pred = net(X, missing_index)
             lsd_train = net.encoder(X, missing_index)
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
-            clf_loss, predicted = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight,
+            clf_loss, predicted, prob = classification_loss(y_onehot, y, net.encoder(X, missing_index), args.weight,
                                                       args.device)
             optim.zero_grad()
             (rec_loss).backward()
@@ -142,6 +145,8 @@ if __name__ == '__main__':
             # 计算准确率
 
             train_accuracy = accuracy(predicted, y)
+            train_auc = auc(prob, y)
+        train_auc = auc.compute().data
         train_accuracy = accuracy.compute().data
         if train_accuracy > best_train_accuracy:
             file = open('data/representations/AE_' + 'data.pkl', 'wb')
@@ -149,13 +154,15 @@ if __name__ == '__main__':
             file = open('data/imputation/AE_' + 'data.pkl', 'wb')
             pickle.dump((x_pred, X, real_missing_index), file)
             best_train_accuracy = train_accuracy
-        print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy))
+        print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f auc: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy, train_auc))
         # valid
         all_num = 0
         val_rec_loss_sum = 0
         valid_accuracy = 0
+        valid_auc = 0
         net.train(False)
         accuracy = Accuracy()
+        auc = AUROC(num_classes=y.max()+1).to(args.device)
         with torch.no_grad():
             for step, (idx, X, y, missing_index) in enumerate(eval_loader):
                 # 使用cuda或者cpu设备
@@ -167,10 +174,12 @@ if __name__ == '__main__':
                 x_pred = net(X, missing_index)
                 val_rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
                 val_rec_loss_sum += val_rec_loss.item()
-                predicted = ave(lsd_train, net.encoder(X, missing_index), y_onehot)
+                predicted, prob = ave(lsd_train, net.encoder(X, missing_index), y_onehot)
                 valid_accuracy = accuracy(predicted, y)
+                valid_auc = auc(prob, y)
+            valid_auc = auc.compute().data
             valid_accuracy = accuracy.compute().data
-            print("valid reconstruction loss: %.4f valid accuracy: %.4f" % (val_rec_loss_sum, valid_accuracy))
+            print("valid reconstruction loss: %.4f valid accuracy: %.4f auc: %.4f" % (val_rec_loss_sum, valid_accuracy, valid_auc))
             if valid_accuracy >= best_eval_accuracy and epoch > 10:
                 best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")

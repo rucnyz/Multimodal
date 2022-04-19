@@ -94,7 +94,7 @@ def train(net, optim, train_loader, eval_loader, args):
             dec_loss_sum += dec_loss.item()
             clf_loss_sum += clf_loss.item()
             train_accuracy += eval(args.pred_func)(predicted, y)
-            auc = AUROC().to(args.device)
+            auc = AUROC(num_classes=y.max()+1).to(args.device)
             train_auc = auc(prob, y)
             all_num += y.size(0)
             # 训练过step+1次，计算平均loss
@@ -470,7 +470,7 @@ def evaluate(net, lsd_train, y_onehot, eval_loader, args):
                 x_pred = net.decoder(lsd_valid)
             predicted, prob = ave(lsd_train, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
-            auc = AUROC().to(args.device)
+            auc = AUROC(num_classes=y.max()+1).to(args.device)
             valid_auc = auc(prob, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num
