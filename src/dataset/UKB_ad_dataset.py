@@ -144,6 +144,10 @@ class UKB_AD_Dataset(Dataset):
         for v in range(self.views):
             self.full_data[v][self.missing_index[:, v] == 0] = self.full_data[v].mean(dim = 0)
 
+    def replace_with_nan(self):
+        for v in range(self.views):
+            self.full_data[v][self.missing_index[:, v] == 0] = np.NaN
+
 
 if __name__ == '__main__':
     full_data, full_labels = preprocess_data()

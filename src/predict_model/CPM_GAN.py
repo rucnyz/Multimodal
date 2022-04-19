@@ -29,10 +29,10 @@ class Encoder(nn.Module):
         self.attn = MultiheadAttention(args.lsd_dim, 2, batch_first = True)
 
     def forward(self, X, missing_index):
-        # attention = 0
-        # for i in range(self.view_num):
-        #     attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
-        # return attention
+        attention = 0
+        for i in range(self.view_num):
+            attention += self.Classifiers[i](X[i]) * missing_index[:, [i]]
+        return attention
         for i in range(self.views):
             X[i] = X[i].to(self.device)
         missing_index = missing_index.to(self.device)

@@ -92,3 +92,7 @@ class UKB_ALL_Dataset(Dataset):
     def replace_with_mean(self):
         for v in range(self.views):
             self.full_data[v][self.missing_index[:, v] == 0] = self.full_data[v].mean(dim = 0)
+
+    def replace_with_nan(self):
+        for v in range(self.views):
+            self.full_data[v][self.missing_index[:, v] == 0] = np.NaN

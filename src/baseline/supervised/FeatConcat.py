@@ -52,7 +52,7 @@ if __name__ == '__main__':
     if os.getcwd().endswith("src"):
         os.chdir("../")
     args = parse_args()
-    args.dataloader = "UKB_ALL_Dataset"
+    args.dataloader = "UKB_Dataset"
     args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # args.device = torch.device("cpu")
     # 设置seed

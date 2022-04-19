@@ -26,5 +26,7 @@ def ave(lsd1, lsd2, label_onehot):
     # should sub 1.Avoid numerical errors; the number of samples of per label
     label_onehot = label_onehot.float()
     predicted_full_values = torch.mm(matrix, label_onehot) / label_num
+    idx = torch.Tensor([1] * len(predicted_full_values)).long().view(-1, 1)  # 取第二列
+    prob = predicted_full_values.gather(1, idx).reshape(1, -1) / torch.sum(predicted_full_values, dim=1)  # pos的概率：通过比例计算
     predicted = torch.max(predicted_full_values, dim = 1)[1]
-    return predicted
+    return predicted, prob[0]

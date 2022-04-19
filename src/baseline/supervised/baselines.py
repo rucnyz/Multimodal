@@ -23,7 +23,7 @@ from utils.pred_func import *
 from utils.preprocess import get_missing_index, missing_data_process
 from dataset.UKB_dataset import UKB_Dataset
 from dataset.UCI_dataset import UCI_Dataset
-from dataset.UKB_ad_dataset import UKB_AD_Dataset
+# from dataset.UKB_ad_dataset import UKB_AD_Dataset
 from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
 from dataset.UKB_all_dataset import UKB_ALL_Dataset
 def parse_args():

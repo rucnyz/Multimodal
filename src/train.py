@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from utils.loss_func import *
 from utils.pred_func import *
+from torchmetrics import Accuracy, AUROC
 
 
 def train(net, optim, train_loader, eval_loader, args):
@@ -20,6 +21,8 @@ def train(net, optim, train_loader, eval_loader, args):
         logfile.write(str(args))
     best_eval_accuracy = 0  # 最佳验证准确率
     best_train_accuracy = 0
+    best_eval_auc = 0
+    best_train_auc = 0
     decay_count = 0
     train_images = math.ceil(len(train_loader.dataset) / args.train_batch_size)
     bce_loss = MyBCELoss(args)
@@ -32,6 +35,7 @@ def train(net, optim, train_loader, eval_loader, args):
         rec_loss_sum = 0
         dec_loss_sum = 0
         clf_loss_sum = 0
+        train_auc = 0
         # 开始运行
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
             # 使用cuda或者cpu设备
@@ -80,7 +84,7 @@ def train(net, optim, train_loader, eval_loader, args):
             # 计算未缺失模态的重建损失和分类损失
             # x_pred-->decoder & encoder  lsd_train-->encoder
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
-            clf_loss, predicted = classification_loss(y_onehot, y, lsd_train, args.weight, args.device)
+            clf_loss, predicted, prob = classification_loss(y_onehot, y, lsd_train, args.weight, args.device)
             optim["encoder"].zero_grad()
             (rec_loss + args.sp * clf_loss + dec_loss).backward()
             # (rec_loss + clf_loss + dec_loss).backward()
@@ -90,6 +94,8 @@ def train(net, optim, train_loader, eval_loader, args):
             dec_loss_sum += dec_loss.item()
             clf_loss_sum += clf_loss.item()
             train_accuracy += eval(args.pred_func)(predicted, y)
+            auc = AUROC().to(args.device)
+            train_auc = auc(prob, y)
             all_num += y.size(0)
             # 训练过step+1次，计算平均loss
             print(
@@ -97,6 +103,7 @@ def train(net, optim, train_loader, eval_loader, args):
                     epoch + 1, step + 1, train_images, rec_loss_sum / (step + 1), clf_loss_sum / (step + 1),
                     dec_loss_sum / (step + 1),), end = " ")
         train_accuracy = 100 * train_accuracy / all_num
+        train_auc = auc.compute().data
         if train_accuracy > best_train_accuracy and epoch > 10:
             file = open('data/representations/CPM_GAN' +
                         str(args.missing_rate) + '_' +
@@ -114,10 +121,12 @@ def train(net, optim, train_loader, eval_loader, args):
         elapse_time = time_end - time_start
         print('\nFinished in {:.4f}s'.format(elapse_time))
         print("Train Accuracy :" + str(train_accuracy))
+        print("Train AUC :" + str(train_auc))
         # Eval
         print('Evaluation...    decay times: {}'.format(decay_count))
-        valid_accuracy = evaluate(net, lsd_train, y_onehot, eval_loader, args)
-        print('Valid Accuracy :' + str(valid_accuracy) + '\n')
+        valid_accuracy, valid_auc = evaluate(net, lsd_train, y_onehot, eval_loader, args)
+        print('Valid Accuracy :' + str(valid_accuracy))
+        print('Valid AUC :' + str(valid_auc) + '\n')
         if (valid_accuracy > best_eval_accuracy) or (
                 valid_accuracy == best_eval_accuracy and train_accuracy > best_train_accuracy):
             # Best
@@ -412,14 +421,14 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
-            loss2, _ = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
+            loss2, _, prob = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
             optim[1].zero_grad()
             loss1.backward()
             # loss2.backward()
             optim[1].step()
         # 最后算一次，进行输出
         x_pred = net(net.lsd_train[idx])
-        clf_loss, predicted = classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
+        clf_loss, predicted, prob = classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
         rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
         print(
             "\r[Epoch %2d][Step %4d/%4d] Reconstruction: %.4f, Classification: %.4f, Lr: %.2e, %4d m remaining"
@@ -442,6 +451,7 @@ def fill_data(x, x_pred, missing_index):
 
 def evaluate(net, lsd_train, y_onehot, eval_loader, args):
     accuracy = 0
+    valid_auc = 0
     all_num = 0
     net.train(False)
     with torch.no_grad():
@@ -458,12 +468,15 @@ def evaluate(net, lsd_train, y_onehot, eval_loader, args):
                 fill_data(X, x_pred, missing_index)
                 lsd_valid = net.encoder(X, torch.ones(missing_index.shape, device = args.device))
                 x_pred = net.decoder(lsd_valid)
-            predicted = ave(lsd_train, lsd_valid, y_onehot)
+            predicted, prob = ave(lsd_train, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
+            auc = AUROC().to(args.device)
+            valid_auc = auc(prob, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num
+        valid_auc = auc.compute().data
     net.train(True)  # ==net.train()，恢复训练模式
-    return 100 * np.array(accuracy)
+    return 100 * np.array(accuracy), 100 * valid_auc
 
 
 def evaluate_TMC(net, eval_loader, args):
@@ -504,7 +517,7 @@ def evaluate_CPM(args, net, optim, valid_loader, label_onehot, id):
             optim[2].step()
         x_pred = net(net.lsd_valid)  # (400,76)(400,216)(400,64)(400,240)(400,47)(400,6)
         rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
-        predicted = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
+        predicted, prob = ave(net.lsd_train[id], net.lsd_valid, label_onehot)
         # 在eval又不去反向传播损失，完全没必要用classification_loss这个函数, 下面的valid_accuracy直接计算是否分类正确
         print("Reconstruction Loss = {:.4f}".format(rec_loss))
         predicted = predicted.reshape(len(predicted), 1)

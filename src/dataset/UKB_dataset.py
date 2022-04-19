@@ -5,6 +5,8 @@
 # @Software: PyCharm
 import os
 import pickle
+
+import numpy as np
 import torch
 
 import pandas as pd
@@ -12,6 +14,7 @@ from torch.utils.data import Dataset
 
 from utils.preprocess import *
 from numpy.random import randint
+from fancyimpute import IterativeSVD
 
 
 def preprocess_data():
@@ -109,6 +112,8 @@ class UKB_Dataset(Dataset):
         self.full_data = dict()
         self.name = name
 
+        self.device = args.device
+
         full_data = pickle.load(open(dataroot + "/data.pkl", "rb"))
         full_labels = pickle.load(open(dataroot + "/label.pkl", "rb"))
 
@@ -167,6 +172,19 @@ class UKB_Dataset(Dataset):
     def replace_with_mean(self):
         for v in range(self.views):
             self.full_data[v][self.missing_index[:, v] == 0] = self.full_data[v].mean(dim = 0)
+
+    # def feat_concat(self, x):
+    #     concat_X = torch.tensor([], device=self.device)
+    #     for i in range(self.views):
+    #         concat_X = torch.cat((concat_X, x[i].to(self.device)), dim=1)
+    #     return concat_X
+
+    def replace_with_nan(self):
+        for v in range(self.views):
+            self.full_data[v][self.missing_index[:, v] == 0] = np.NaN
+        # full_data_concat = UKB_Dataset.feat_concat(self, self.full_data)
+        # self.full_data = torch.Tensor(IterativeSVD().fit_transform(full_data_concat))
+
 
 
 if __name__ == '__main__':

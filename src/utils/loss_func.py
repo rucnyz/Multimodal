@@ -84,6 +84,10 @@ def classification_loss(label_onehot, y, lsd_temp, weight, device):
     # 把这个矩阵和label_onehot相乘，得到的矩阵(N,classes)，第(i,j)位置的元素，代表着第i个样本和所有属于第j类的样本的 相似度之和
     predicted_full_values = torch.mm(train_matrix, label_onehot) / label_num  # (1600,10) 有正有负 越大相似度越高 类比点积
     # 因此，找到最大的那个类，也就是找到这个样本和其中样本相似度最大的那个类，我们就可以预测该样本属于这个类
+
+    idx = torch.Tensor([1] * len(predicted_full_values)).long().view(-1, 1)  # 取第二列
+    prob = predicted_full_values.gather(1, idx).reshape(1, -1) / torch.sum(predicted_full_values, dim=1)  # pos的概率：通过比例计算
+
     predicted = torch.max(predicted_full_values, dim = 1)[1]  # 每个sample属于的类
     predicted_max_value = torch.max(predicted_full_values, dim = 1, keepdim = False)[0]  # 每个sample预测的属于的类的相似度（最大）
     predicted = predicted.reshape([predicted.shape[0], 1])  # (1600,1)
@@ -102,7 +106,7 @@ def classification_loss(label_onehot, y, lsd_temp, weight, device):
     # 增加样本权重
     class_weight = y.type(torch.float32).apply_(lambda a: weight[int(a)])
     loss = (predicted_max_value - predicted_y) * class_weight
-    return loss.mean(), predicted.squeeze(1)
+    return loss.mean(), predicted.squeeze(1), prob[0]
 
 
 # 就是计算预测的训练数据和真实训练数据之间的差异，求的是误差平方和，同时用到的missing_index起到了只计算未缺失数据误差的作用
