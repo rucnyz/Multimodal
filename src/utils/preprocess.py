@@ -33,7 +33,6 @@ def missing_data_process(args, train_data, valid_data, missing_index):
         args.valid_batch_size = args.num - int(args.num * 4 / 5)
 
 
-
 def Normalize(data):
     """
     :param data:Input data

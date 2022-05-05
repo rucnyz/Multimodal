@@ -3,6 +3,7 @@ import os
 import pickle
 import time
 
+import nni
 from torch.utils.tensorboard import SummaryWriter
 
 from utils.loss_func import *
@@ -39,7 +40,7 @@ def train(net, optim, train_loader, eval_loader, args):
         # 开始运行
         for step, (idx, X, y, missing_index) in enumerate(train_loader):
             # 使用cuda或者cpu设备
-            real_missing_index =missing_index
+            real_missing_index = missing_index
             for i in range(args.views):
                 X[i] = X[i].to(args.device)
             y = y.to(args.device)
@@ -47,7 +48,8 @@ def train(net, optim, train_loader, eval_loader, args):
             # 用GAN生成数据补充缺失模态
             if epoch > args.GAN_start:
                 with torch.no_grad():
-                    x_pred = net.decoder(net.encoder(X, missing_index))
+                    lsd, _ = net.encoder(X, missing_index)
+                    x_pred = net.decoder(lsd)
                     fill_data(X, x_pred, missing_index)
                     missing_index = torch.ones(missing_index.shape, device = args.device)
             # 产生one-hot编码的标签
@@ -55,7 +57,7 @@ def train(net, optim, train_loader, eval_loader, args):
                 y.shape[0], 1), 1)
             # --------------------------------------
             # 重建原数据,考虑缺失模态情况
-            lsd_train = net.encoder(X, missing_index)  # （1600，128）
+            lsd_train, kl_div = net.encoder(X, missing_index)  # （1600，128）
             x_pred = net.decoder(lsd_train)
             # 冻结decoder参数(decoder即generator)，计算discriminator损失
             # 取每一个模态X中未缺失部分作为正样本1，和x_pred中X缺失部分对应的数据作为生成样本0，训练discriminator
@@ -86,7 +88,7 @@ def train(net, optim, train_loader, eval_loader, args):
             rec_loss = reconstruction_loss(args.views, x_pred, X, missing_index)
             clf_loss, predicted, prob = classification_loss(y_onehot, y, lsd_train, args.weight, args.device)
             optim["encoder"].zero_grad()
-            (rec_loss + args.sp * clf_loss + dec_loss).backward()
+            (rec_loss + args.sp * clf_loss + dec_loss + 0.0001 * kl_div).backward()
             # (rec_loss + clf_loss + dec_loss).backward()
             optim["encoder"].step()
             # ---------------------------------------
@@ -94,7 +96,7 @@ def train(net, optim, train_loader, eval_loader, args):
             dec_loss_sum += dec_loss.item()
             clf_loss_sum += clf_loss.item()
             train_accuracy += eval(args.pred_func)(predicted, y)
-            auc = AUROC(num_classes=y.max()+1).to(args.device)
+            auc = AUROC(num_classes = y.max() + 1).to(args.device)
             train_auc = auc(prob, y)
             all_num += y.size(0)
             # 训练过step+1次，计算平均loss
@@ -127,6 +129,9 @@ def train(net, optim, train_loader, eval_loader, args):
         valid_accuracy, valid_auc = evaluate(net, lsd_train, y_onehot, eval_loader, args)
         print('Valid Accuracy :' + str(valid_accuracy))
         print('Valid AUC :' + str(valid_auc) + '\n')
+        nni.report_intermediate_result(valid_auc.item())
+        if valid_auc > best_eval_auc:
+            best_eval_auc = valid_auc
         if (valid_accuracy > best_eval_accuracy) or (
                 valid_accuracy == best_eval_accuracy and train_accuracy > best_train_accuracy):
             # Best
@@ -147,6 +152,8 @@ def train(net, optim, train_loader, eval_loader, args):
             best_eval_accuracy = valid_accuracy
     print("---------------------------------------------")
     print("Best evaluate accuracy:{}".format(best_eval_accuracy))
+    print("Best evaluate auc:{}".format(best_eval_auc))
+    nni.report_final_result(best_eval_auc.item())
 
 
 def train1(net, loss_fn, optim, train_loader, eval_loader, args):
@@ -421,7 +428,8 @@ def train_CPM(args, epoch, net, optim, train_images, train_loader, time_start):
         for i in range(5):
             x_pred = net(net.lsd_train[idx])
             loss1 = reconstruction_loss(args.views, x_pred, X, missing_index[idx])
-            loss2, _, prob = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight, args.device)
+            loss2, _, prob = net.lamb * classification_loss(label_onehot, y, net.lsd_train[idx], args.weight,
+                                                            args.device)
             optim[1].zero_grad()
             loss1.backward()
             # loss2.backward()
@@ -461,16 +469,16 @@ def evaluate(net, lsd_train, y_onehot, eval_loader, args):
             y = y.to(args.device)
             missing_index = missing_index.to(args.device)
             # 生成one_hot编码的label来进行后续分类
-            lsd_valid = net.encoder(X, missing_index)  # (1600，128)
+            lsd_valid, _ = net.encoder(X, missing_index)  # (1600，128)
             x_pred = net.decoder(lsd_valid)
             # 将预测值补充到原数据中,loop_times决定了跑几个来回
             for i in range(args.loop_times):
                 fill_data(X, x_pred, missing_index)
-                lsd_valid = net.encoder(X, torch.ones(missing_index.shape, device = args.device))
+                lsd_valid, _ = net.encoder(X, torch.ones(missing_index.shape, device = args.device))
                 x_pred = net.decoder(lsd_valid)
             predicted, prob = ave(lsd_train, lsd_valid, y_onehot)
             accuracy += eval(args.pred_func)(predicted, y)
-            auc = AUROC(num_classes=y.max()+1).to(args.device)
+            auc = AUROC(num_classes = y.max() + 1).to(args.device)
             valid_auc = auc(prob, y)
             all_num += y.size(0)
         accuracy = accuracy / all_num

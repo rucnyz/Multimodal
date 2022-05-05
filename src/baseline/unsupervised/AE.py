@@ -103,7 +103,7 @@ if __name__ == '__main__':
     eval_loader = DataLoader(eval_dset, batch_size = args.num - int(args.num * 4 / 5), num_workers = args.num_workers,
                              pin_memory = False)
 
-    epochs = 50
+    epochs = 150
     # Net
     net = AE(args)
     net.to(args.device)
@@ -154,6 +154,7 @@ if __name__ == '__main__':
             file = open('data/imputation/AE_' + 'data.pkl', 'wb')
             pickle.dump((x_pred, X, real_missing_index), file)
             best_train_accuracy = train_accuracy
+            file.close()
         print("[Epoch %2d] reconstruction loss: %.4f accuracy: %.4f auc: %.4f" % (epoch + 1, rec_loss_sum, train_accuracy, train_auc))
         # valid
         all_num = 0

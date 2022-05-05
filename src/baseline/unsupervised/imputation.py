@@ -23,7 +23,7 @@ def RMSE(view_num, x_pred, x, missing_index):
 # 数据
 random_state = 100
 # 数据
-h_data = open('../data/imputation/CPM_GAN0.5_4_40_data.pkl', 'rb')
+h_data = open('../data/imputation/AE_data.pkl', 'rb')
 X_pred, X, missing_index = pickle.load(h_data)
 # 计算聚类准确率
 # loss = mean_squared_error(y_pred, y, multioutput = 'raw_values', squared = False)

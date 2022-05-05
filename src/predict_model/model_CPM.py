@@ -32,7 +32,6 @@ class CPM(nn.Module):
         # 另外这里用ModuleList是类似于list的东西，但不要使用list，因为那样net.parameters()将无法将此识别为网络参数，在优化器传入参数的
         # 时候会有麻烦。ModuleList起到的是注册参数的作用
 
-
         self.lsd_train = self.lsd_init('train')
         self.lsd_valid = self.lsd_init('valid')
         # 初始化隐藏层，使用的方法是均匀分布的Xavier初始化，具体可参见我写的PDF以及网络资料

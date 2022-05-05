@@ -1,3 +1,4 @@
+import nni
 import torch
 
 import argparse
@@ -75,6 +76,8 @@ if __name__ == '__main__':
 
     # Base on args given, compute new args
     args = compute_args(parse_args())
+    optimized_params = nni.get_next_parameter()
+    args.__dict__.update(optimized_params)
     # parse_args: 刚定义，return args
     # compute_args: utils.compute_args当中的函数, 根据数据集设置dataloader、pred_func和loss_func
 
@@ -93,7 +96,7 @@ if __name__ == '__main__':
     dataroot = os.path.join(os.getcwd() + '/data' + '/ukb_data')
     if args.dataset == 'UKB_All':
         missing_index = pickle.load(open(dataroot + "/missing_index_all2.pkl", "rb"))
-        print("missing_rate = " + str(sum(sum(missing_index))/(missing_index.shape[0] * missing_index.shape[1])))
+        print("missing_rate = " + str(sum(sum(missing_index)) / (missing_index.shape[0] * missing_index.shape[1])))
     else:
         missing_index = get_missing_index(args.views, args.num, args.missing_rate)
 

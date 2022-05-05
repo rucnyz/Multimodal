@@ -108,7 +108,6 @@ class Generator(nn.Module):  # 相比CPM，删除掉lsd_init，通过encoder产�
         self.layer_size = [[150, args.classifier_dims[i]] for i in range(self.view_num)]
         # self.layer_size: [[150, 76], [150, 216], [150, 64], [150, 240], [150, 47], [150, 6]]
         self.lsd_dim = args.lsd_dim  # args.lsd_dim = 128  # lsd: latent space data
-        self.lamb = 1
         self.num = args.num
         self.net = nn.ModuleList(self._make_view(v) for v in range(self.view_num))
         # 和TMC类似的体系，每个模态有一个对应的输出，但不完全一样，这是两层全连接层，最后有一个dropout。

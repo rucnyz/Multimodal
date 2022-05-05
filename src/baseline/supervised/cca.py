@@ -19,14 +19,13 @@ from utils.loss_func import classification_loss
 from utils.pred_func import accuracy_count, ave
 from utils.preprocess import *
 from dataset.UKB_balanced_dataset import UKB_BALANCED_Dataset
+
 if os.getcwd().endswith("src"):
     os.chdir("../")
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--missing_rate', type = float, default = 0.5,
                     help = 'view missing rate [default: 0]')
-parser.add_argument("--mode", default = 'client')
-parser.add_argument("--port", default = 52162)
 args = parser.parse_args()
 args.device = torch.device("cpu")
 torch.manual_seed(123)  # 设置CPU生成随机数的种子，方便下次复现实验结果

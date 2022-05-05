@@ -32,7 +32,7 @@ def cluster_accuracy(y_predict, y_true):
 
 random_state = 100
 # 数据
-h_data = open('C:/Users/HCY/PycharmProjects/Multimodal/data/representations/CPM_GAN0.5_4_40_data.pkl', 'rb')
+h_data = open('data/representations/AE_data.pkl', 'rb')
 X, y = pickle.load(h_data)
 X.requires_grad_(False)
 # X, y = make_blobs(n_samples = [300, 300, 400], centers = None, n_features = 2, random_state = random_state)

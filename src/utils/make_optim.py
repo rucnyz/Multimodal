@@ -24,4 +24,3 @@ def GAN_Adam(net, lr):  # 都是更改参数
     optim.update({"decoder": torch.optim.Adam(net.decoder.parameters(), lr)})
     optim.update({"discriminator": torch.optim.Adam(net.discriminator.parameters(), lr)})
     return optim
-

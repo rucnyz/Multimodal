@@ -56,7 +56,7 @@ def preprocess_data():
     # 有缺失值
     healthy_all = data_final_all[data_final_all["dep_inc"] == 0]
     depressed_all = data_final_all[data_final_all["dep_inc"] == 1]
-    data_final_all_balanced = pd.concat([depressed_all, healthy_all.sample(n=len(depressed_all))])
+    data_final_all_balanced = pd.concat([depressed_all, healthy_all.sample(n = len(depressed_all))])
 
     full_data_all = {0: data_final_all_balanced[population], 1: data_final_all_balanced[economy],
                      2: data_final_all_balanced[lifestyle], 3: data_final_all_balanced[blood],
@@ -84,7 +84,7 @@ def preprocess_data():
 
     healthy = data_final[data_final["dep_inc"] == 0]
     depressed = data_final[data_final["dep_inc"] == 1]
-    data_final_balanced = pd.concat([depressed, healthy.sample(n=len(depressed))])
+    data_final_balanced = pd.concat([depressed, healthy.sample(n = len(depressed))])
 
     full_data_balanced = {0: data_final_balanced[population], 1: data_final_balanced[economy],
                           2: data_final_balanced[lifestyle], 3: data_final_balanced[blood],
@@ -199,5 +199,3 @@ if __name__ == '__main__':
     pickle.dump(full_data_balanced, open(dataroot + "/data_balanced.pkl", "wb"))
     pickle.dump(full_labels_balanced, open(dataroot + "/label_balanced.pkl", "wb"))
     pickle.dump(matrix, open(dataroot + "/missing_index_all.pkl", "wb"))
-
-
