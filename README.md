@@ -41,7 +41,18 @@
           "GAN_start": 100,
           "dropout": 0.2
           }
-        - ALL 3090 8tjaoris
+        - ALL 3090 4txr8qnc 61.69 61.80
+          {
+          "loop_times": 3,
+          "lr_base": 0.00010130459758991694,
+          "GAN_start": 60,
+          "dropout": 0.3
+          } {
+          "loop_times": 3,
+          "lr_base": 0.00011651539693675672,
+          "GAN_start": 40,
+          "dropout": 0.3
+          }
     - 无监督
       - 
 - AMII attention
@@ -95,7 +106,13 @@
           }
           GAN_start > 0 61.14 60.43 61.14 61.00 61.32 61.50
           GAN_start =-1 60.21 60.78 60.07 60.43 59.89 60.07
-        - ALL
+        - ALL 卓越 sjtv90r5 61.73
+          {
+          "loop_times": 4,
+          "lr_base": 0.0012426136415178424,
+          "GAN_start": 100,
+          "dropout": 0.1
+          }
     - 无监督
       - 
 
